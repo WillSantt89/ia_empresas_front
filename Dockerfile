@@ -1,31 +1,52 @@
 # Build stage
 FROM node:20-alpine AS builder
 
+# Install dependencies for building
+RUN apk add --no-cache libc6-compat
+
 WORKDIR /app
 
-# Copy package.json
+# Copy package files
 COPY package.json ./
 
-# Install dependencies (use legacy-peer-deps to resolve conflicts)
-RUN npm install --legacy-peer-deps
+# Install dependencies with force to bypass version conflicts
+RUN npm install --force
 
-# Copy source code
+# Copy all files
 COPY . .
 
-# Build the application
+# Build Next.js application
+ENV NEXT_TELEMETRY_DISABLED=1
 RUN npm run build
 
 # Production stage
-FROM nginx:alpine
+FROM node:20-alpine AS runner
 
-# Copy nginx config
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+WORKDIR /app
 
-# Copy built application from builder
-COPY --from=builder /app/dist /usr/share/nginx/html
+# Install production dependencies
+RUN apk add --no-cache libc6-compat
+
+# Create non-root user
+RUN addgroup -g 1001 -S nodejs
+RUN adduser -S nextjs -u 1001
+
+# Copy necessary files from builder
+COPY --from=builder /app/public ./public
+COPY --from=builder /app/.next/standalone ./
+COPY --from=builder /app/.next/static ./.next/static
+
+# Set permissions
+RUN chown -R nextjs:nodejs /app
+
+USER nextjs
 
 # Expose port
-EXPOSE 80
+EXPOSE 3000
 
-# Start nginx
-CMD ["nginx", "-g", "daemon off;"]
+ENV PORT=3000
+ENV HOSTNAME="0.0.0.0"
+ENV NODE_ENV=production
+
+# Start Next.js
+CMD ["node", "server.js"]
