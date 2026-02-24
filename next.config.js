@@ -20,7 +20,24 @@ const nextConfig = {
   // Optimize images
   images: {
     domains: [],
-    unoptimized: true, // For static export
+    unoptimized: true,
+  },
+
+  // Experimental features for better CSS handling
+  experimental: {
+    optimizeCss: false, // Disable CSS optimization that might break Tailwind
+  },
+
+  // Webpack configuration
+  webpack: (config, { isServer }) => {
+    // Ensure CSS modules are handled correctly
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        fs: false,
+      };
+    }
+    return config;
   },
 }
 
