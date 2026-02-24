@@ -138,10 +138,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     user,
     isLoading,
     isAuthenticated: isAuthenticated() && !!user,
-    login: (email, password, remember = false) =>
-      loginMutation.mutateAsync({ email, senha: password, remember }),
-    logout: () => logoutMutation.mutateAsync(),
-    register: (data) => registerMutation.mutateAsync(data),
+    login: async (email, password, remember = false) => {
+      await loginMutation.mutateAsync({ email, senha: password, remember })
+    },
+    logout: async () => {
+      await logoutMutation.mutateAsync()
+    },
+    register: async (data) => {
+      await registerMutation.mutateAsync(data)
+    },
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
