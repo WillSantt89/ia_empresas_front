@@ -15,6 +15,10 @@ RUN npm install --force
 # Copy all files
 COPY . .
 
+# Set build-time environment variables
+ARG VITE_API_URL
+ENV NEXT_PUBLIC_API_URL=${VITE_API_URL}
+
 # Build Next.js application
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN npm run build
