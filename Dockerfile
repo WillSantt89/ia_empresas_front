@@ -37,8 +37,8 @@ RUN adduser -S nextjs -u 1001
 
 # Copy built application and dependencies
 COPY --from=builder /app/public ./public
-COPY --from=builder /app/.next ./.next
-COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/.next/static ./.next/static
+COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/package.json ./package.json
 
 # Set permissions
@@ -53,5 +53,5 @@ ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 ENV NODE_ENV=production
 
-# Start Next.js with production server
-CMD ["npm", "start"]
+# Start Next.js standalone server
+CMD ["node", "server.js"]

@@ -12,7 +12,7 @@ export class ApiError extends Error {
   }
 }
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api'
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
 
 interface RequestOptions extends RequestInit {
   token?: string
@@ -105,27 +105,27 @@ export const api = {
 // Auth endpoints
 export const auth = {
   login: (data: { email: string; senha: string }) =>
-    api.post('/auth/login', data, { skipAuth: true }),
+    api.post('/api/auth/login', data, { skipAuth: true }),
 
   register: (data: { nome: string; email: string; senha: string }) =>
-    api.post('/auth/register', data, { skipAuth: true }),
+    api.post('/api/auth/register', data, { skipAuth: true }),
 
-  logout: () => api.post('/auth/logout'),
+  logout: () => api.post('/api/auth/logout'),
 
   refresh: (refreshToken: string) =>
-    api.post('/auth/refresh', { refresh_token: refreshToken }, { skipAuth: true }),
+    api.post('/api/auth/refresh', { refresh_token: refreshToken }, { skipAuth: true }),
 
-  me: () => api.get('/auth/me'),
+  me: () => api.get('/api/auth/me'),
 
   forgotPassword: (email: string) =>
-    api.post('/auth/forgot-password', { email }, { skipAuth: true }),
+    api.post('/api/auth/forgot-password', { email }, { skipAuth: true }),
 
   resetPassword: (data: { token: string; senha: string }) =>
-    api.post('/auth/reset-password', data, { skipAuth: true }),
+    api.post('/api/auth/reset-password', data, { skipAuth: true }),
 
   changePassword: (data: { current_password: string; new_password: string }) =>
-    api.post('/usuarios/change-password', data),
+    api.post('/api/usuarios/change-password', data),
 
   verifyEmail: (token: string) =>
-    api.post('/auth/verify-email', { token }, { skipAuth: true }),
+    api.post('/api/auth/verify-email', { token }, { skipAuth: true }),
 }
