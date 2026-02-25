@@ -1,57 +1,44 @@
 # Build stage
-FROM node:20-alpine AS builder
-
-# Install dependencies for building
+FROM node:20-alpine AS deps
 RUN apk add --no-cache libc6-compat
-
 WORKDIR /app
-
-# Copy package files
 COPY package.json ./
-
-# Install dependencies with force to bypass version conflicts
 RUN npm install --force
 
-# Copy all files
+FROM node:20-alpine AS builder
+RUN apk add --no-cache libc6-compat
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# Set build-time environment variables
 ARG VITE_API_URL
 ENV NEXT_PUBLIC_API_URL=${VITE_API_URL}
-
-# Build Next.js application
 ENV NEXT_TELEMETRY_DISABLED=1
+
 RUN npm run build
 
-# Production stage
+# Runner stage
 FROM node:20-alpine AS runner
-
 WORKDIR /app
 
-# Install production dependencies
-RUN apk add --no-cache libc6-compat
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
 
-# Create non-root user
-RUN addgroup -g 1001 -S nodejs
-RUN adduser -S nextjs -u 1001
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 nextjs
 
-# Copy built application and dependencies
+# Copy public assets
 COPY --from=builder /app/public ./public
-COPY --from=builder /app/.next/static ./.next/static
-COPY --from=builder /app/.next/standalone ./
-COPY --from=builder /app/package.json ./package.json
 
-# Set permissions
-RUN chown -R nextjs:nodejs /app
+# Ensure .next directory structure
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
 USER nextjs
 
-# Expose port
 EXPOSE 3000
 
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
-ENV NODE_ENV=production
 
-# Start Next.js standalone server
 CMD ["node", "server.js"]
