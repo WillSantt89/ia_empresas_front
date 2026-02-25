@@ -26,6 +26,7 @@ const nextConfig = {
   // Experimental features for better CSS handling
   experimental: {
     optimizeCss: false, // Disable CSS optimization that might break Tailwind
+    appDir: true,
   },
 
   // Webpack configuration
