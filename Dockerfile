@@ -19,8 +19,10 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 # Set build-time environment variables
+# Supports both VITE_API_URL (EasyPanel) and NEXT_PUBLIC_API_URL
+ARG VITE_API_URL
 ARG NEXT_PUBLIC_API_URL
-ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+ENV NEXT_PUBLIC_API_URL=${VITE_API_URL:-${NEXT_PUBLIC_API_URL}}
 ENV NEXT_TELEMETRY_DISABLED=1
 
 # Build the application
