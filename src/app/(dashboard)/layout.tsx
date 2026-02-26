@@ -86,6 +86,7 @@ export default function DashboardLayout({
       ],
       '/dashboard/api-keys': [
         { key: ['api-keys'], fn: () => api.get('/api/api-keys') },
+        { key: ['api-keys-stats'], fn: () => api.get('/api/api-keys/stats') },
       ],
       '/dashboard/whatsapp-numbers': [
         { key: ['whatsapp-numbers'], fn: () => api.get('/api/whatsapp-numbers') },
