@@ -1,4 +1,4 @@
-import { getAuthToken, removeAuthToken, setAuthToken } from '@/lib/auth'
+import { getAuthToken, getRefreshToken, removeAuthToken, setAuthToken, setRefreshToken, clearAuth } from '@/lib/auth'
 
 export class ApiError extends Error {
   constructor(
@@ -17,13 +17,58 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || process.env.VITE_API_URL || '
 interface RequestOptions extends RequestInit {
   token?: string
   skipAuth?: boolean
+  _retried?: boolean
+}
+
+let isRefreshing = false
+let refreshPromise: Promise<boolean> | null = null
+
+async function tryRefreshToken(): Promise<boolean> {
+  const refreshToken = getRefreshToken()
+  if (!refreshToken) return false
+
+  try {
+    const response = await fetch(`${API_URL}/api/auth/refresh`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refreshToken }),
+    })
+
+    if (!response.ok) return false
+
+    const data = await response.json()
+    const result = data.data || data
+
+    if (result.token) {
+      setAuthToken(result.token)
+      if (result.refreshToken) {
+        setRefreshToken(result.refreshToken)
+      }
+      return true
+    }
+    return false
+  } catch {
+    return false
+  }
+}
+
+async function refreshTokenIfNeeded(): Promise<boolean> {
+  if (isRefreshing && refreshPromise) {
+    return refreshPromise
+  }
+  isRefreshing = true
+  refreshPromise = tryRefreshToken().finally(() => {
+    isRefreshing = false
+    refreshPromise = null
+  })
+  return refreshPromise
 }
 
 async function request<T = any>(
   endpoint: string,
   options: RequestOptions = {}
 ): Promise<T> {
-  const { token, skipAuth = false, ...init } = options
+  const { token, skipAuth = false, _retried = false, ...init } = options
 
   const authToken = token || getAuthToken()
 
@@ -39,12 +84,24 @@ async function request<T = any>(
   try {
     const response = await fetch(`${API_URL}${endpoint}`, config)
 
-    if (response.status === 401) {
-      // Token expired or invalid
-      removeAuthToken()
-      // In a real app, we might try to refresh the token here
+    if (response.status === 401 && !skipAuth && !_retried) {
+      // Try to refresh the token before giving up
+      const refreshed = await refreshTokenIfNeeded()
+      if (refreshed) {
+        // Retry the original request with new token
+        return request<T>(endpoint, { ...options, _retried: true })
+      }
+
+      // Refresh failed - clear auth and redirect
+      clearAuth()
       window.location.href = '/login'
-      throw new ApiError(401, 'Unauthorized', 'UNAUTHORIZED')
+      throw new ApiError(401, 'Sessao expirada', 'UNAUTHORIZED')
+    }
+
+    if (response.status === 401) {
+      clearAuth()
+      window.location.href = '/login'
+      throw new ApiError(401, 'Sessao expirada', 'UNAUTHORIZED')
     }
 
     const data = await response.json()
@@ -65,10 +122,10 @@ async function request<T = any>(
     }
 
     if (error instanceof TypeError && error.message === 'Failed to fetch') {
-      throw new ApiError(0, 'Network error. Please check your connection.', 'NETWORK_ERROR')
+      throw new ApiError(0, 'Erro de conexao. Verifique sua internet.', 'NETWORK_ERROR')
     }
 
-    throw new ApiError(500, 'An unexpected error occurred', 'UNKNOWN_ERROR')
+    throw new ApiError(500, 'Erro inesperado', 'UNKNOWN_ERROR')
   }
 }
 
@@ -113,7 +170,7 @@ export const auth = {
   logout: () => api.post('/api/auth/logout'),
 
   refresh: (refreshToken: string) =>
-    api.post('/api/auth/refresh', { refresh_token: refreshToken }, { skipAuth: true }),
+    api.post('/api/auth/refresh', { refreshToken }, { skipAuth: true }),
 
   me: () => api.get('/api/auth/me'),
 
@@ -125,7 +182,4 @@ export const auth = {
 
   changePassword: (data: { current_password: string; new_password: string }) =>
     api.post('/api/usuarios/change-password', data),
-
-  verifyEmail: (token: string) =>
-    api.post('/api/auth/verify-email', { token }, { skipAuth: true }),
 }
