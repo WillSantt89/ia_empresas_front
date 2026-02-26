@@ -86,8 +86,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return { response, remember }
     },
     onSuccess: ({ response, remember }) => {
-      const { access_token, refresh_token, expires_in, user } = response
-      setAuth({ access_token, refresh_token, expires_in }, user, remember)
+      const tokens = {
+        access_token: response.token,
+        refresh_token: response.refreshToken,
+        expires_in: 86400,
+      }
+      const user = response.usuario
+      setAuth(tokens, user, remember)
       setUser(user)
       queryClient.invalidateQueries({ queryKey: ['user'] })
       toast.success('Login realizado com sucesso!')

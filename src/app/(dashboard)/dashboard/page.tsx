@@ -78,13 +78,13 @@ export default function DashboardPage() {
   // Fetch overview data
   const { data, isLoading } = useQuery<OverviewData>({
     queryKey: ['analytics', 'overview'],
-    queryFn: () => api.get('/analytics/overview'),
+    queryFn: () => api.get('/api/analytics/overview'),
   })
 
   // Fetch usage data
   const { data: usageData } = useQuery({
     queryKey: ['analytics', 'usage'],
-    queryFn: () => api.get('/analytics/usage'),
+    queryFn: () => api.get('/api/analytics/usage'),
   })
 
   if (isLoading) {
