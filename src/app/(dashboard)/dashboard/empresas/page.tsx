@@ -153,6 +153,7 @@ export default function EmpresasPage() {
   })
 
   const openResetSenha = (empresaId: string, usuario: any) => {
+    setShowDetailModal(false) // Close detail modal first
     setResetTarget({
       empresaId,
       userId: usuario.id,
