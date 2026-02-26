@@ -12,6 +12,7 @@ const inter = Inter({
 })
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'),
   title: {
     default: 'IA Empresas Admin',
     template: '%s | IA Empresas Admin'
@@ -23,7 +24,6 @@ export const metadata: Metadata = {
   openGraph: {
     type: 'website',
     locale: 'pt_BR',
-    url: process.env.NEXT_PUBLIC_APP_URL,
     siteName: 'IA Empresas Admin',
     title: 'IA Empresas Admin',
     description: 'Plataforma administrativa para gestão de agentes de IA',
