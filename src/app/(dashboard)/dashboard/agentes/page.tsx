@@ -183,7 +183,7 @@ export default function AgentesPage() {
 
   const canManage = user?.role === 'master' || user?.role === 'admin'
 
-  const AgentFormFields = () => (
+  const agentFormFields = (
     <>
       <FormField label="Nome" required>
         <input type="text" value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} className={inputClass} placeholder="Ex: Atendimento WhatsApp" />
@@ -322,7 +322,7 @@ export default function AgentesPage() {
 
       {/* Create Modal */}
       <Modal open={showCreateModal} onClose={closeCreateModal} title="Novo Agente" wide>
-        <AgentFormFields />
+        {agentFormFields}
         <div className="flex justify-end gap-3 mt-6">
           <button onClick={closeCreateModal} className={btnSecondary}>Cancelar</button>
           <button onClick={handleCreate} disabled={createMutation.isPending} className={btnPrimary}>
@@ -333,7 +333,7 @@ export default function AgentesPage() {
 
       {/* Edit Modal */}
       <Modal open={showEditModal} onClose={closeEditModal} title="Configurar Agente" wide>
-        <AgentFormFields />
+        {agentFormFields}
         <div className="flex justify-end gap-3 mt-6">
           <button onClick={closeEditModal} className={btnSecondary}>Cancelar</button>
           <button onClick={handleUpdate} disabled={updateMutation.isPending} className={btnPrimary}>

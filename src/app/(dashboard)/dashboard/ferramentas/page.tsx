@@ -251,7 +251,7 @@ export default function FerramentasPage() {
 
   const canManage = user?.role === 'master' || user?.role === 'admin'
 
-  const ToolFormFields = () => (
+  const toolFormFields = (
     <>
       <div className="grid grid-cols-2 gap-4">
         <FormField label="Nome" required>
@@ -408,7 +408,7 @@ export default function FerramentasPage() {
 
       {/* Create Modal */}
       <Modal open={showCreateModal} onClose={closeCreateModal} title="Nova Ferramenta" wide>
-        <ToolFormFields />
+        {toolFormFields}
         <div className="flex justify-end gap-3 mt-6">
           <button onClick={closeCreateModal} className={btnSecondary}>Cancelar</button>
           <button onClick={handleCreate} disabled={createMutation.isPending} className={btnPrimary}>
@@ -419,7 +419,7 @@ export default function FerramentasPage() {
 
       {/* Edit Modal */}
       <Modal open={showEditModal} onClose={closeEditModal} title="Editar Ferramenta" wide>
-        <ToolFormFields />
+        {toolFormFields}
         <div className="flex justify-end gap-3 mt-6">
           <button onClick={closeEditModal} className={btnSecondary}>Cancelar</button>
           <button onClick={handleUpdate} disabled={updateMutation.isPending} className={btnPrimary}>
