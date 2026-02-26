@@ -20,6 +20,8 @@ import {
   MessageSquare,
   Phone,
   FileText,
+  CreditCard,
+  Package,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/contexts/auth-context'
@@ -28,6 +30,8 @@ import { api } from '@/lib/api'
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Empresas', href: '/dashboard/empresas', icon: Building2, roles: ['master'] },
+  { name: 'Planos', href: '/dashboard/planos', icon: CreditCard, roles: ['master'] },
+  { name: 'Itens Cobraveis', href: '/dashboard/itens-cobraveis', icon: Package, roles: ['master'] },
   { name: 'Usuários', href: '/dashboard/usuarios', icon: Users, roles: ['master', 'admin'] },
   { name: 'Agentes', href: '/dashboard/agentes', icon: Bot, roles: ['master', 'admin'] },
   { name: 'Ferramentas', href: '/dashboard/ferramentas', icon: Wrench, roles: ['master', 'admin'] },
@@ -58,10 +62,16 @@ export default function DashboardLayout({
   const prefetchRoute = useCallback((href: string) => {
     const prefetchMap: Record<string, { key: string[]; fn: () => Promise<any> }[]> = {
       '/dashboard': [
-        { key: ['analytics', 'overview'], fn: () => api.get('/api/analytics/overview') },
+        { key: ['dashboard', 'hoje'], fn: () => api.get('/api/dashboard?periodo=hoje') },
       ],
       '/dashboard/empresas': [
         { key: ['empresas', '', ''], fn: () => api.get('/api/empresas') },
+      ],
+      '/dashboard/planos': [
+        { key: ['planos'], fn: () => api.get('/api/planos') },
+      ],
+      '/dashboard/itens-cobraveis': [
+        { key: ['itens-cobraveis'], fn: () => api.get('/api/itens-cobraveis?include_faixas=true') },
       ],
       '/dashboard/usuarios': [
         { key: ['usuarios', ''], fn: () => api.get('/api/usuarios?search=') },

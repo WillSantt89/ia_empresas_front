@@ -1,7 +1,7 @@
 'use client'
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Building2, Users, Bot, Plus, Search, Edit, Power, Eye, X, KeyRound } from 'lucide-react'
+import { Building2, Users, Bot, Plus, Search, Edit, Power, Eye, X, KeyRound, CreditCard, FileText, DollarSign, History } from 'lucide-react'
 import { useState } from 'react'
 import { api } from '@/lib/api'
 import { useAuth } from '@/contexts/auth-context'
@@ -83,6 +83,31 @@ export default function EmpresasPage() {
   const [resetTarget, setResetTarget] = useState<{ empresaId: string; userId: string; userName: string; userEmail: string } | null>(null)
   const [novaSenha, setNovaSenha] = useState('')
   const [filterTipo, setFilterTipo] = useState('')
+  const [detailTab, setDetailTab] = useState<'info' | 'assinatura'>('info')
+  const [assinaturaData, setAssinaturaData] = useState<any>(null)
+  const [assinaturaLoading, setAssinaturaLoading] = useState(false)
+  const [showAssinaturaEdit, setShowAssinaturaEdit] = useState(false)
+  const [selectedPlanoId, setSelectedPlanoId] = useState('')
+  const [assinaturaStatus, setAssinaturaStatus] = useState('')
+
+  // Load planos for subscription management
+  const { data: planosData } = useQuery({
+    queryKey: ['planos'],
+    queryFn: () => api.get('/api/planos?ativo=true'),
+    enabled: user?.role === 'master',
+    staleTime: 5 * 60 * 1000,
+  })
+
+  // Update subscription
+  const updateAssinaturaMutation = useMutation({
+    mutationFn: ({ empresaId, ...data }: any) => api.put(`/api/assinaturas/${empresaId}`, data),
+    onSuccess: () => {
+      toast.success('Assinatura atualizada!')
+      setShowAssinaturaEdit(false)
+      if (detailData?.empresa?.id) loadAssinatura(detailData.empresa.id)
+    },
+    onError: (err: any) => toast.error(err.message || 'Erro ao atualizar assinatura'),
+  })
 
   // Master: list all empresas
   const { data: listData, isLoading: listLoading } = useQuery({
@@ -175,15 +200,37 @@ export default function EmpresasPage() {
     }
   }
 
+  // Load subscription data
+  const loadAssinatura = async (empresaId: string) => {
+    setAssinaturaLoading(true)
+    try {
+      const data = await api.get(`/api/assinaturas/${empresaId}`)
+      setAssinaturaData(data?.data || data)
+    } catch {
+      setAssinaturaData(null)
+    }
+    setAssinaturaLoading(false)
+  }
+
   // Get empresa details
   const loadDetails = async (id: string) => {
     try {
       const data = await api.get(`/api/empresas/${id}`)
       setDetailData(data)
+      setDetailTab('info')
       setShowDetailModal(true)
+      loadAssinatura(id)
     } catch {
       toast.error('Erro ao carregar detalhes')
     }
+  }
+
+  const handleUpdateAssinatura = () => {
+    if (!detailData?.empresa?.id) return
+    const payload: any = {}
+    if (selectedPlanoId) payload.plano_id = selectedPlanoId
+    if (assinaturaStatus) payload.status = assinaturaStatus
+    updateAssinaturaMutation.mutate({ empresaId: detailData.empresa.id, ...payload })
   }
 
   // Open edit modal
@@ -546,67 +593,273 @@ export default function EmpresasPage() {
       {/* DETAIL MODAL */}
       {showDetailModal && detailData && (
         <Modal title={`Detalhes: ${detailData.empresa?.nome}`} onClose={() => setShowDetailModal(false)} wide>
-          <div className="space-y-6">
-            <Section title="Informacoes">
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <Info label="Nome" value={detailData.empresa?.nome} />
-                <Info label="Slug" value={detailData.empresa?.slug} />
-                <Info label="Email" value={detailData.empresa?.email} />
-                <Info label="Telefone" value={detailData.empresa?.telefone} />
-                <Info label="Documento" value={detailData.empresa?.documento} />
-                <Info label="Tipo" value={tipoLabels[detailData.empresa?.tipo] || detailData.empresa?.tipo} />
-                <Info label="Plano" value={detailData.empresa?.plano_nome || 'Sem plano'} />
-                <Info label="Status" value={detailData.empresa?.ativo ? 'Ativo' : 'Inativo'} />
-                <Info label="Criado em" value={detailData.empresa?.criado_em ? new Date(detailData.empresa.criado_em).toLocaleDateString('pt-BR') : '-'} />
-              </div>
-            </Section>
+          {/* Tabs */}
+          <div className="flex gap-1 mb-6 border-b border-gray-200 dark:border-gray-700">
+            {[
+              { key: 'info', label: 'Informacoes', icon: Building2 },
+              { key: 'assinatura', label: 'Assinatura', icon: CreditCard },
+            ].map((tab) => (
+              <button
+                key={tab.key}
+                onClick={() => setDetailTab(tab.key as any)}
+                className={`flex items-center gap-1.5 px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
+                  detailTab === tab.key
+                    ? 'border-primary text-primary'
+                    : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                }`}
+              >
+                <tab.icon className="h-4 w-4" />
+                {tab.label}
+              </button>
+            ))}
+          </div>
 
-            <Section title="Limites e Uso">
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                <UsageCard label="Usuarios" used={detailData.usage?.usuarios_ativos || 0} max={detailData.limits?.max_usuarios || 0} />
-                <UsageCard label="Agentes" used={detailData.usage?.agentes_ativos || 0} max={detailData.limits?.max_agentes || 0} />
-                <UsageCard label="Mensagens" used={detailData.usage?.mensagens_processadas || 0} max={detailData.limits?.max_mensagens_mes || 0} />
-                <UsageCard label="Tokens" used={detailData.usage?.tokens_usados || 0} max={detailData.limits?.max_tokens_mes || 0} />
-              </div>
-            </Section>
+          {/* Info Tab */}
+          {detailTab === 'info' && (
+            <div className="space-y-6">
+              <Section title="Dados">
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <Info label="Nome" value={detailData.empresa?.nome} />
+                  <Info label="Slug" value={detailData.empresa?.slug} />
+                  <Info label="Email" value={detailData.empresa?.email} />
+                  <Info label="Telefone" value={detailData.empresa?.telefone} />
+                  <Info label="Documento" value={detailData.empresa?.documento} />
+                  <Info label="Tipo" value={tipoLabels[detailData.empresa?.tipo] || detailData.empresa?.tipo} />
+                  <Info label="Plano" value={detailData.empresa?.plano_nome || 'Sem plano'} />
+                  <Info label="Status" value={detailData.empresa?.ativo ? 'Ativo' : 'Inativo'} />
+                  <Info label="Criado em" value={detailData.empresa?.criado_em ? new Date(detailData.empresa.criado_em).toLocaleDateString('pt-BR') : '-'} />
+                </div>
+              </Section>
 
-            <Section title={`Usuarios (${detailData.usuarios?.length || 0})`}>
-              {detailData.usuarios?.length > 0 ? (
-                <div className="divide-y divide-gray-200 dark:divide-gray-700">
-                  {detailData.usuarios.map((u: any) => (
-                    <div key={u.id} className="py-3 flex items-center justify-between">
-                      <div>
-                        <p className="text-sm font-medium text-gray-900 dark:text-white">{u.nome}</p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">{u.email}</p>
+              <Section title="Limites e Uso">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                  <UsageCard label="Usuarios" used={detailData.usage?.usuarios_ativos || 0} max={detailData.limits?.max_usuarios || 0} />
+                  <UsageCard label="Agentes" used={detailData.usage?.agentes_ativos || 0} max={detailData.limits?.max_agentes || 0} />
+                  <UsageCard label="Mensagens" used={detailData.usage?.mensagens_processadas || 0} max={detailData.limits?.max_mensagens_mes || 0} />
+                  <UsageCard label="Tokens" used={detailData.usage?.tokens_usados || 0} max={detailData.limits?.max_tokens_mes || 0} />
+                </div>
+              </Section>
+
+              <Section title={`Usuarios (${detailData.usuarios?.length || 0})`}>
+                {detailData.usuarios?.length > 0 ? (
+                  <div className="divide-y divide-gray-200 dark:divide-gray-700">
+                    {detailData.usuarios.map((u: any) => (
+                      <div key={u.id} className="py-3 flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-gray-900 dark:text-white">{u.nome}</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">{u.email}</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className={`px-2 py-1 text-xs rounded-full ${u.role === 'master' ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400' : u.role === 'admin' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400' : 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400'}`}>
+                            {u.role}
+                          </span>
+                          <span className={`px-2 py-1 text-xs rounded-full ${u.ativo ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'}`}>
+                            {u.ativo ? 'Ativo' : 'Inativo'}
+                          </span>
+                          <button
+                            onClick={() => openResetSenha(detailData.empresa?.id, u)}
+                            className="ml-1 p-1 text-orange-600 hover:text-orange-800 dark:text-orange-400 dark:hover:text-orange-300"
+                            title="Resetar senha"
+                          >
+                            <KeyRound className="h-4 w-4" />
+                          </button>
+                        </div>
                       </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Nenhum usuario</p>
+                )}
+              </Section>
+            </div>
+          )}
+
+          {/* Assinatura Tab */}
+          {detailTab === 'assinatura' && (
+            <div className="space-y-6">
+              {assinaturaLoading ? (
+                <div className="animate-pulse space-y-3">
+                  <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-1/3"></div>
+                  <div className="h-20 bg-gray-200 dark:bg-gray-700 rounded"></div>
+                </div>
+              ) : assinaturaData ? (
+                <>
+                  {/* Current subscription info */}
+                  <div className="bg-gray-50 dark:bg-gray-700/30 rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="text-sm font-semibold text-gray-900 dark:text-white">Plano Atual</h4>
                       <div className="flex items-center gap-2">
-                        <span className={`px-2 py-1 text-xs rounded-full ${u.role === 'master' ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400' : u.role === 'admin' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400' : 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400'}`}>
-                          {u.role}
-                        </span>
-                        <span className={`px-2 py-1 text-xs rounded-full ${u.ativo ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'}`}>
-                          {u.ativo ? 'Ativo' : 'Inativo'}
+                        <span className={`inline-flex px-2 py-0.5 text-xs font-semibold rounded-full ${
+                          assinaturaData.status === 'ativa' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' :
+                          assinaturaData.status === 'suspensa' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400' :
+                          'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
+                        }`}>
+                          {assinaturaData.status}
                         </span>
                         <button
-                          onClick={() => openResetSenha(detailData.empresa?.id, u)}
-                          className="ml-1 p-1 text-orange-600 hover:text-orange-800 dark:text-orange-400 dark:hover:text-orange-300"
-                          title="Resetar senha"
+                          onClick={() => {
+                            setSelectedPlanoId(assinaturaData.plano_id || '')
+                            setAssinaturaStatus(assinaturaData.status || '')
+                            setShowAssinaturaEdit(true)
+                          }}
+                          className="text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 flex items-center gap-1"
                         >
-                          <KeyRound className="h-4 w-4" />
+                          <Edit className="h-3 w-3" />
+                          Alterar
                         </button>
                       </div>
                     </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-sm text-gray-500 dark:text-gray-400">Nenhum usuario</p>
-              )}
-            </Section>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
+                      <div>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">Plano</p>
+                        <p className="font-semibold text-gray-900 dark:text-white">{assinaturaData.plano_nome || 'Sem plano'}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">Max Usuarios</p>
+                        <p className="font-semibold text-gray-900 dark:text-white">{assinaturaData.max_usuarios || '-'}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">Max Tools</p>
+                        <p className="font-semibold text-gray-900 dark:text-white">{assinaturaData.max_tools || '-'}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">Max Msgs/Mes</p>
+                        <p className="font-semibold text-gray-900 dark:text-white">{Number(assinaturaData.max_mensagens_mes || 0).toLocaleString('pt-BR')}</p>
+                      </div>
+                    </div>
+                  </div>
 
-            <div className="flex justify-end pt-4 border-t border-gray-200 dark:border-gray-700">
-              <button onClick={() => setShowDetailModal(false)} className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600">
-                Fechar
-              </button>
+                  {/* Edit subscription form */}
+                  {showAssinaturaEdit && (
+                    <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 space-y-3">
+                      <h4 className="text-sm font-semibold text-blue-800 dark:text-blue-300">Alterar Assinatura</h4>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Plano</label>
+                          <select value={selectedPlanoId} onChange={(e) => setSelectedPlanoId(e.target.value)} className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white">
+                            <option value="">Manter atual</option>
+                            {(planosData?.data || planosData || []).map((p: any) => (
+                              <option key={p.id} value={p.id}>{p.nome} - R$ {Number(p.preco_base_mensal).toFixed(2)}/mes</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Status</label>
+                          <select value={assinaturaStatus} onChange={(e) => setAssinaturaStatus(e.target.value)} className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white">
+                            <option value="">Manter atual</option>
+                            <option value="ativa">Ativa</option>
+                            <option value="suspensa">Suspensa</option>
+                            <option value="cancelada">Cancelada</option>
+                          </select>
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <button onClick={handleUpdateAssinatura} disabled={updateAssinaturaMutation.isPending} className="px-3 py-1.5 text-sm font-medium text-white bg-primary rounded-md hover:bg-primary/90 disabled:opacity-50">
+                          {updateAssinaturaMutation.isPending ? 'Salvando...' : 'Salvar'}
+                        </button>
+                        <button onClick={() => setShowAssinaturaEdit(false)} className="px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700">
+                          Cancelar
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Billing summary */}
+                  {assinaturaData.resumo_cobranca && (
+                    <div>
+                      <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+                        <DollarSign className="h-4 w-4 text-green-500" />
+                        Resumo de Cobranca
+                      </h4>
+                      <div className="bg-gray-50 dark:bg-gray-700/30 rounded-lg overflow-hidden">
+                        <table className="w-full text-sm">
+                          <tbody className="divide-y divide-gray-200 dark:divide-gray-600">
+                            {assinaturaData.resumo_cobranca.detalhes?.map((d: any, i: number) => (
+                              <tr key={i}>
+                                <td className="px-4 py-2 text-gray-600 dark:text-gray-400">{d.descricao}</td>
+                                <td className="px-4 py-2 text-right text-gray-600 dark:text-gray-400">{d.quantidade > 1 ? `${d.quantidade}x` : ''}</td>
+                                <td className="px-4 py-2 text-right text-gray-900 dark:text-white font-medium">R$ {Number(d.valor_total).toFixed(2)}</td>
+                              </tr>
+                            ))}
+                            <tr className="bg-gray-100 dark:bg-gray-600/30">
+                              <td className="px-4 py-2 font-semibold text-gray-900 dark:text-white" colSpan={2}>Total</td>
+                              <td className="px-4 py-2 text-right font-bold text-green-600 dark:text-green-400">
+                                R$ {Number(assinaturaData.resumo_cobranca.valor_total || 0).toFixed(2)}
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Subscription items */}
+                  {assinaturaData.itens && assinaturaData.itens.length > 0 && (
+                    <div>
+                      <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+                        <FileText className="h-4 w-4 text-blue-500" />
+                        Itens da Assinatura
+                      </h4>
+                      <div className="space-y-2">
+                        {assinaturaData.itens.map((item: any) => (
+                          <div key={item.id} className={`bg-gray-50 dark:bg-gray-700/30 rounded-lg p-3 flex items-center justify-between ${!item.ativo ? 'opacity-50' : ''}`}>
+                            <div>
+                              <p className="text-sm font-medium text-gray-900 dark:text-white">{item.item_nome}</p>
+                              <p className="text-xs text-gray-500 dark:text-gray-400">
+                                {item.faixa_nome ? `Faixa: ${item.faixa_nome} (${item.faixa_limite_diario}/dia)` : `Qtd: ${item.quantidade}`}
+                                {' · '}
+                                R$ {Number(item.preco_unitario).toFixed(2)}/un
+                              </p>
+                            </div>
+                            <span className={`px-2 py-0.5 text-[10px] font-semibold rounded-full ${
+                              item.ativo ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                            }`}>
+                              {item.ativo ? 'Ativo' : 'Inativo'}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Usage */}
+                  {assinaturaData.uso_atual && (
+                    <div>
+                      <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">Uso Atual</h4>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                        <div className="bg-gray-50 dark:bg-gray-700/30 rounded-lg p-3 text-center">
+                          <p className="text-xs text-gray-500 dark:text-gray-400">Agentes</p>
+                          <p className="text-lg font-bold text-gray-900 dark:text-white">{assinaturaData.uso_atual.agentes_ativos || 0}</p>
+                        </div>
+                        <div className="bg-gray-50 dark:bg-gray-700/30 rounded-lg p-3 text-center">
+                          <p className="text-xs text-gray-500 dark:text-gray-400">Numeros</p>
+                          <p className="text-lg font-bold text-gray-900 dark:text-white">{assinaturaData.uso_atual.numeros_ativos || 0}</p>
+                        </div>
+                        <div className="bg-gray-50 dark:bg-gray-700/30 rounded-lg p-3 text-center">
+                          <p className="text-xs text-gray-500 dark:text-gray-400">Usuarios</p>
+                          <p className="text-lg font-bold text-gray-900 dark:text-white">{assinaturaData.uso_atual.usuarios_ativos || 0}</p>
+                        </div>
+                        <div className="bg-gray-50 dark:bg-gray-700/30 rounded-lg p-3 text-center">
+                          <p className="text-xs text-gray-500 dark:text-gray-400">Msgs/Mes</p>
+                          <p className="text-lg font-bold text-gray-900 dark:text-white">{Number(assinaturaData.uso_atual.mensagens_mes_atual || 0).toLocaleString('pt-BR')}</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="text-center py-8">
+                  <CreditCard className="h-10 w-10 mx-auto mb-3 text-gray-300 dark:text-gray-600" />
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Nenhuma assinatura encontrada para esta empresa</p>
+                </div>
+              )}
             </div>
+          )}
+
+          <div className="flex justify-end pt-4 border-t border-gray-200 dark:border-gray-700 mt-6">
+            <button onClick={() => setShowDetailModal(false)} className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600">
+              Fechar
+            </button>
           </div>
         </Modal>
       )}
