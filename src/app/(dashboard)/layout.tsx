@@ -22,6 +22,7 @@ import {
   FileText,
   CreditCard,
   Package,
+  Bell,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/contexts/auth-context'
@@ -39,6 +40,7 @@ const navigation = [
   { name: 'WhatsApp', href: '/dashboard/whatsapp-numbers', icon: Phone, roles: ['master', 'admin'] },
   { name: 'Chat', href: '/dashboard/chat', icon: MessageSquare, roles: ['master', 'admin', 'operador'] },
   { name: 'Logs', href: '/dashboard/logs', icon: FileText, roles: ['master', 'admin', 'operador'] },
+  { name: 'Notificacoes', href: '/dashboard/notificacoes', icon: Bell, roles: ['master', 'admin'] },
   { name: 'Analytics', href: '/dashboard/analytics', icon: BarChart3 },
   { name: 'Configurações', href: '/dashboard/configuracoes', icon: Settings },
 ]
@@ -93,6 +95,9 @@ export default function DashboardLayout({
       ],
       '/dashboard/logs': [
         { key: ['logs', '1'], fn: () => api.get('/api/logs?page=1&per_page=30') },
+      ],
+      '/dashboard/notificacoes': [
+        { key: ['notificacoes-resumo'], fn: () => api.get('/api/notificacoes/resumo') },
       ],
       '/dashboard/analytics': [
         { key: ['analytics', 'overview'], fn: () => api.get('/api/analytics/overview') },

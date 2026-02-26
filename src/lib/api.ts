@@ -120,7 +120,7 @@ export const auth = {
   forgotPassword: (email: string) =>
     api.post('/api/auth/forgot-password', { email }, { skipAuth: true }),
 
-  resetPassword: (data: { token: string; senha: string }) =>
+  resetPassword: (data: { token: string; novaSenha: string }) =>
     api.post('/api/auth/reset-password', data, { skipAuth: true }),
 
   changePassword: (data: { current_password: string; new_password: string }) =>
