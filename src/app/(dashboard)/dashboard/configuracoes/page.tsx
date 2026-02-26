@@ -1,156 +1,429 @@
 'use client'
 
-import { useQuery } from '@tanstack/react-query'
-import { Settings, User, Building2, Bell, Shield } from 'lucide-react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { Settings, User, Building2, Bell, Shield, Headphones, Save, Loader2, CheckCircle, Globe, TestTube } from 'lucide-react'
+import { useState, useEffect } from 'react'
 import { api } from '@/lib/api'
 import { useAuth } from '@/contexts/auth-context'
+import toast from 'react-hot-toast'
+
+const inputClass = "w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+const btnPrimary = "inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+const btnSecondary = "inline-flex items-center gap-2 rounded-md border border-gray-300 dark:border-gray-600 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50"
+
+function Section({ icon: Icon, title, children, action }: { icon: any; title: string; children: React.ReactNode; action?: React.ReactNode }) {
+  return (
+    <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-3">
+          <Icon className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">{title}</h2>
+        </div>
+        {action}
+      </div>
+      {children}
+    </div>
+  )
+}
+
+function Toggle({ checked, onChange, label, description }: { checked: boolean; onChange: (v: boolean) => void; label: string; description?: string }) {
+  return (
+    <div className="flex items-center justify-between">
+      <div>
+        <p className="text-sm font-medium text-gray-900 dark:text-white">{label}</p>
+        {description && <p className="text-xs text-gray-500 dark:text-gray-400">{description}</p>}
+      </div>
+      <label className="relative inline-flex items-center cursor-pointer">
+        <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} className="sr-only peer" />
+        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary"></div>
+      </label>
+    </div>
+  )
+}
 
 export default function ConfiguracoesPage() {
   const { user } = useAuth()
+  const queryClient = useQueryClient()
+  const canEdit = user?.role === 'master' || user?.role === 'admin'
 
-  const { data: empresa } = useQuery({
-    queryKey: ['empresa', 'me'],
-    queryFn: () => api.get('/api/empresas/me'),
+  // Load configuracoes
+  const { data: configData, isLoading } = useQuery({
+    queryKey: ['configuracoes'],
+    queryFn: () => api.get('/api/configuracoes'),
   })
+
+  const config = configData?.data || configData || {}
+
+  // Form states
+  const [empresaNome, setEmpresaNome] = useState('')
+  const [chatwootUrl, setChatwootUrl] = useState('')
+  const [chatwootToken, setChatwootToken] = useState('')
+  const [chatwootAccountId, setChatwootAccountId] = useState('')
+  const [chatwootAdminEmail, setChatwootAdminEmail] = useState('')
+
+  const [controleTimeout, setControleTimeout] = useState(30)
+  const [controleMsgRetorno, setControleMsgRetorno] = useState('')
+  const [controleDevNota, setControleDevNota] = useState(true)
+  const [controleCmdAssumir, setControleCmdAssumir] = useState('/assumir')
+  const [controleCmdDevolver, setControleCmdDevolver] = useState('/devolver')
+  const [controleNotifAssumir, setControleNotifAssumir] = useState(true)
+  const [controleNotifDevolver, setControleNotifDevolver] = useState(true)
+  const [controleAtivo, setControleAtivo] = useState(true)
+
+  const [senhaAtual, setSenhaAtual] = useState('')
+  const [senhaNova, setSenhaNova] = useState('')
+  const [senhaConfirmar, setSenhaConfirmar] = useState('')
+
+  // Sync form with loaded data
+  useEffect(() => {
+    if (config.empresa) {
+      setEmpresaNome(config.empresa.nome || '')
+    }
+    if (config.chatwoot) {
+      setChatwootUrl(config.chatwoot.url || '')
+      setChatwootAccountId(config.chatwoot.account_id?.toString() || '')
+      setChatwootAdminEmail(config.chatwoot.admin_email || '')
+    }
+    if (config.controle_humano) {
+      const ch = config.controle_humano
+      setControleTimeout(ch.timeout_inatividade_minutos || 30)
+      setControleMsgRetorno(ch.mensagem_retorno_ia || '')
+      setControleDevNota(ch.permitir_devolver_via_nota !== false)
+      setControleCmdAssumir(ch.comando_assumir || '/assumir')
+      setControleCmdDevolver(ch.comando_devolver || '/devolver')
+      setControleNotifAssumir(ch.notificar_admin_ao_assumir !== false)
+      setControleNotifDevolver(ch.notificar_admin_ao_devolver !== false)
+      setControleAtivo(ch.ativo !== false)
+    }
+  }, [config.empresa?.nome, config.chatwoot?.url, config.controle_humano?.timeout_inatividade_minutos])
+
+  // Save empresa
+  const saveEmpresaMutation = useMutation({
+    mutationFn: () => api.put('/api/configuracoes', { empresa: { nome: empresaNome } }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['configuracoes'] })
+      toast.success('Dados da empresa salvos!')
+    },
+    onError: (err: any) => toast.error(err.message || 'Erro ao salvar'),
+  })
+
+  // Save chatwoot
+  const saveChatwootMutation = useMutation({
+    mutationFn: () => api.put('/api/configuracoes', {
+      chatwoot: {
+        url: chatwootUrl || undefined,
+        account_id: chatwootAccountId ? parseInt(chatwootAccountId) : undefined,
+        admin_email: chatwootAdminEmail || undefined,
+        ...(chatwootToken ? { api_token: chatwootToken } : {}),
+      }
+    }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['configuracoes'] })
+      setChatwootToken('')
+      toast.success('Chatwoot configurado!')
+    },
+    onError: (err: any) => toast.error(err.message || 'Erro ao salvar Chatwoot'),
+  })
+
+  // Test chatwoot
+  const testChatwootMutation = useMutation({
+    mutationFn: () => api.post('/api/configuracoes/chatwoot/testar', {}),
+    onSuccess: (data: any) => {
+      const result = data?.data || data
+      if (result?.status === 'connected') {
+        toast.success('Conexao com Chatwoot OK!')
+      } else {
+        toast.error(result?.message || 'Erro na conexao')
+      }
+    },
+    onError: (err: any) => toast.error(err.message || 'Erro ao testar Chatwoot'),
+  })
+
+  // Save controle humano
+  const saveControleMutation = useMutation({
+    mutationFn: () => api.put('/api/configuracoes', {
+      controle_humano: {
+        timeout_inatividade_minutos: controleTimeout,
+        mensagem_retorno_ia: controleMsgRetorno,
+        permitir_devolver_via_nota: controleDevNota,
+        comando_assumir: controleCmdAssumir,
+        comando_devolver: controleCmdDevolver,
+        notificar_admin_ao_assumir: controleNotifAssumir,
+        notificar_admin_ao_devolver: controleNotifDevolver,
+        ativo: controleAtivo,
+      }
+    }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['configuracoes'] })
+      toast.success('Controle humano salvo!')
+    },
+    onError: (err: any) => toast.error(err.message || 'Erro ao salvar controle humano'),
+  })
+
+  // Change password
+  const changePasswordMutation = useMutation({
+    mutationFn: () => api.post('/api/usuarios/change-password', {
+      current_password: senhaAtual,
+      new_password: senhaNova,
+    }),
+    onSuccess: () => {
+      toast.success('Senha alterada com sucesso!')
+      setSenhaAtual('')
+      setSenhaNova('')
+      setSenhaConfirmar('')
+    },
+    onError: (err: any) => toast.error(err.message || 'Erro ao alterar senha'),
+  })
+
+  const handleChangePassword = () => {
+    if (!senhaAtual || !senhaNova) {
+      toast.error('Preencha a senha atual e nova senha')
+      return
+    }
+    if (senhaNova.length < 6) {
+      toast.error('A nova senha deve ter no minimo 6 caracteres')
+      return
+    }
+    if (senhaNova !== senhaConfirmar) {
+      toast.error('As senhas nao conferem')
+      return
+    }
+    changePasswordMutation.mutate()
+  }
+
+  if (isLoading) {
+    return (
+      <div className="p-6">
+        <div className="mb-8">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Configuracoes</h1>
+        </div>
+        <div className="space-y-6">
+          {[1,2,3,4].map(i => (
+            <div key={i} className="animate-pulse bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+              <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-1/4 mb-6"></div>
+              <div className="space-y-4">
+                <div className="h-10 bg-gray-200 dark:bg-gray-700 rounded"></div>
+                <div className="h-10 bg-gray-200 dark:bg-gray-700 rounded"></div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="p-6">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Configurações</h1>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Configuracoes</h1>
         <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-          Gerencie as configurações da sua conta e empresa
+          Gerencie as configuracoes da sua conta e empresa
         </p>
       </div>
 
       <div className="space-y-6">
         {/* Perfil */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-          <div className="flex items-center gap-3 mb-6">
-            <User className="h-5 w-5 text-gray-500 dark:text-gray-400" />
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Perfil</h2>
-          </div>
+        <Section icon={User} title="Perfil">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nome</label>
-              <input
-                type="text"
-                defaultValue={user?.nome || ''}
-                className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-              />
+              <input type="text" value={user?.nome || ''} disabled className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-600 px-3 py-2 text-sm text-gray-500 dark:text-gray-400 cursor-not-allowed" />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email</label>
-              <input
-                type="email"
-                defaultValue={user?.email || ''}
-                disabled
-                className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-600 px-3 py-2 text-sm text-gray-500 dark:text-gray-400 cursor-not-allowed"
-              />
+              <input type="email" value={user?.email || ''} disabled className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-600 px-3 py-2 text-sm text-gray-500 dark:text-gray-400 cursor-not-allowed" />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Role</label>
-              <input
-                type="text"
-                value={user?.role || ''}
-                disabled
-                className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-600 px-3 py-2 text-sm text-gray-500 dark:text-gray-400 cursor-not-allowed"
-              />
+              <input type="text" value={user?.role || ''} disabled className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-600 px-3 py-2 text-sm text-gray-500 dark:text-gray-400 cursor-not-allowed" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Empresa</label>
+              <input type="text" value={user?.empresa_nome || config.empresa?.nome || ''} disabled className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-600 px-3 py-2 text-sm text-gray-500 dark:text-gray-400 cursor-not-allowed" />
             </div>
           </div>
-          <div className="mt-4">
-            <button className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90">
-              Salvar Perfil
-            </button>
-          </div>
-        </div>
+        </Section>
 
         {/* Empresa */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-          <div className="flex items-center gap-3 mb-6">
-            <Building2 className="h-5 w-5 text-gray-500 dark:text-gray-400" />
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Empresa</h2>
-          </div>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nome da Empresa</label>
-              <input
-                type="text"
-                defaultValue={empresa?.nome || ''}
-                className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-              />
+        {canEdit && (
+          <Section
+            icon={Building2}
+            title="Empresa"
+            action={
+              <button onClick={() => saveEmpresaMutation.mutate()} disabled={saveEmpresaMutation.isPending} className={btnPrimary}>
+                {saveEmpresaMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                Salvar
+              </button>
+            }
+          >
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nome da Empresa</label>
+                <input type="text" value={empresaNome} onChange={(e) => setEmpresaNome(e.target.value)} className={inputClass} />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Plano</label>
+                <input type="text" value={config.plano?.nome || 'Nao definido'} disabled className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-600 px-3 py-2 text-sm text-gray-500 dark:text-gray-400 cursor-not-allowed" />
+              </div>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Plano</label>
-              <input
-                type="text"
-                value={empresa?.plano || 'Não definido'}
-                disabled
-                className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-600 px-3 py-2 text-sm text-gray-500 dark:text-gray-400 cursor-not-allowed"
-              />
-            </div>
-          </div>
-        </div>
+            {config.plano?.limites && (
+              <div className="mt-4 grid grid-cols-3 gap-4">
+                <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Usuarios</p>
+                  <p className="text-sm font-semibold text-gray-900 dark:text-white">{config.plano.uso_atual?.usuarios || 0} / {config.plano.limites.max_usuarios || '-'}</p>
+                </div>
+                <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Tools</p>
+                  <p className="text-sm font-semibold text-gray-900 dark:text-white">{config.plano.uso_atual?.tools || 0} / {config.plano.limites.max_tools || '-'}</p>
+                </div>
+                <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Mensagens/mes</p>
+                  <p className="text-sm font-semibold text-gray-900 dark:text-white">{config.plano.uso_atual?.mensagens_mes || 0} / {config.plano.limites.max_mensagens_mes || '-'}</p>
+                </div>
+              </div>
+            )}
+          </Section>
+        )}
 
-        {/* Segurança */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-          <div className="flex items-center gap-3 mb-6">
-            <Shield className="h-5 w-5 text-gray-500 dark:text-gray-400" />
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Segurança</h2>
-          </div>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        {/* Chatwoot */}
+        {canEdit && (
+          <Section
+            icon={Globe}
+            title="Chatwoot"
+            action={
+              <div className="flex gap-2">
+                <button onClick={() => testChatwootMutation.mutate()} disabled={testChatwootMutation.isPending} className={btnSecondary}>
+                  {testChatwootMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <TestTube className="h-4 w-4" />}
+                  Testar
+                </button>
+                <button onClick={() => saveChatwootMutation.mutate()} disabled={saveChatwootMutation.isPending} className={btnPrimary}>
+                  {saveChatwootMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                  Salvar
+                </button>
+              </div>
+            }
+          >
+            <div className="flex items-center gap-2 mb-4">
+              <span className={`inline-flex h-2 w-2 rounded-full ${config.chatwoot?.configurado ? 'bg-green-500' : 'bg-gray-300'}`}></span>
+              <span className="text-sm text-gray-600 dark:text-gray-400">
+                {config.chatwoot?.configurado ? 'Configurado' : 'Nao configurado'}
+              </span>
+              {config.chatwoot?.status && (
+                <span className={`px-2 py-0.5 text-xs rounded-full ${
+                  config.chatwoot.status === 'ativo' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' :
+                  config.chatwoot.status === 'erro' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400' :
+                  'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
+                }`}>
+                  {config.chatwoot.status}
+                </span>
+              )}
+            </div>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">URL do Chatwoot</label>
+                <input type="text" value={chatwootUrl} onChange={(e) => setChatwootUrl(e.target.value)} className={inputClass} placeholder="https://chatwoot.empresa.com" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Account ID</label>
+                <input type="text" value={chatwootAccountId} onChange={(e) => setChatwootAccountId(e.target.value)} className={inputClass} placeholder="1" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">API Token <span className="text-xs text-gray-400">(deixe vazio para manter)</span></label>
+                <input type="password" value={chatwootToken} onChange={(e) => setChatwootToken(e.target.value)} className={inputClass} placeholder="••••••••" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email Admin</label>
+                <input type="email" value={chatwootAdminEmail} onChange={(e) => setChatwootAdminEmail(e.target.value)} className={inputClass} placeholder="admin@empresa.com" />
+              </div>
+            </div>
+          </Section>
+        )}
+
+        {/* Controle Humano */}
+        {canEdit && (
+          <Section
+            icon={Headphones}
+            title="Controle Humano"
+            action={
+              <button onClick={() => saveControleMutation.mutate()} disabled={saveControleMutation.isPending} className={btnPrimary}>
+                {saveControleMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                Salvar
+              </button>
+            }
+          >
+            <div className="space-y-4">
+              <Toggle checked={controleAtivo} onChange={setControleAtivo} label="Controle humano ativo" description="Permite que humanos assumam conversas da IA" />
+
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Timeout de inatividade (minutos)</label>
+                  <input type="number" min={5} max={1440} value={controleTimeout} onChange={(e) => setControleTimeout(parseInt(e.target.value) || 30)} className={inputClass} />
+                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Apos este tempo sem interacao humana, a IA reassume</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Mensagem de retorno da IA</label>
+                  <input type="text" value={controleMsgRetorno} onChange={(e) => setControleMsgRetorno(e.target.value)} className={inputClass} placeholder="Voltei! Como posso ajudar?" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Comando assumir</label>
+                  <input type="text" value={controleCmdAssumir} onChange={(e) => setControleCmdAssumir(e.target.value)} className={inputClass} />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Comando devolver</label>
+                  <input type="text" value={controleCmdDevolver} onChange={(e) => setControleCmdDevolver(e.target.value)} className={inputClass} />
+                </div>
+              </div>
+
+              <Toggle checked={controleDevNota} onChange={setControleDevNota} label="Permitir devolver via nota" description="Operadores podem devolver o controle usando nota interna no Chatwoot" />
+              <Toggle checked={controleNotifAssumir} onChange={setControleNotifAssumir} label="Notificar admin ao assumir" description="Envia notificacao quando humano assume conversa" />
+              <Toggle checked={controleNotifDevolver} onChange={setControleNotifDevolver} label="Notificar admin ao devolver" description="Envia notificacao quando humano devolve conversa" />
+            </div>
+          </Section>
+        )}
+
+        {/* Seguranca */}
+        <Section icon={Shield} title="Alterar Senha">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Senha Atual</label>
-              <input
-                type="password"
-                placeholder="••••••••"
-                className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-              />
+              <input type="password" value={senhaAtual} onChange={(e) => setSenhaAtual(e.target.value)} placeholder="••••••••" className={inputClass} />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nova Senha</label>
-              <input
-                type="password"
-                placeholder="••••••••"
-                className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-              />
+              <input type="password" value={senhaNova} onChange={(e) => setSenhaNova(e.target.value)} placeholder="••••••••" className={inputClass} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Confirmar Nova Senha</label>
+              <input type="password" value={senhaConfirmar} onChange={(e) => setSenhaConfirmar(e.target.value)} placeholder="••••••••" className={inputClass} />
             </div>
           </div>
           <div className="mt-4">
-            <button className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90">
+            <button onClick={handleChangePassword} disabled={changePasswordMutation.isPending} className={btnPrimary}>
+              {changePasswordMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Shield className="h-4 w-4" />}
               Alterar Senha
             </button>
           </div>
-        </div>
+        </Section>
 
-        {/* Notificações */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-          <div className="flex items-center gap-3 mb-6">
-            <Bell className="h-5 w-5 text-gray-500 dark:text-gray-400" />
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Notificações</h2>
-          </div>
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-900 dark:text-white">Alertas de uso</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">Receber alertas quando atingir limites de uso</p>
+        {/* Uso */}
+        {config.estatisticas_uso && (
+          <Section icon={Settings} title="Uso do Mes">
+            <div className="grid grid-cols-3 gap-4">
+              <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4 text-center">
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">{config.estatisticas_uso.mensagens_mes || 0}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Mensagens</p>
               </div>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input type="checkbox" defaultChecked className="sr-only peer" />
-                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary"></div>
-              </label>
-            </div>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-900 dark:text-white">Erros de agentes</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">Notificar quando um agente tiver erros</p>
+              <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4 text-center">
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">{((config.estatisticas_uso.tokens_mes || 0) / 1000).toFixed(1)}k</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Tokens</p>
               </div>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input type="checkbox" defaultChecked className="sr-only peer" />
-                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary"></div>
-              </label>
+              <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4 text-center">
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">{config.estatisticas_uso.tool_calls_mes || 0}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Tool Calls</p>
+              </div>
             </div>
-          </div>
-        </div>
+          </Section>
+        )}
       </div>
     </div>
   )

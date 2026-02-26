@@ -18,6 +18,8 @@ import {
   X,
   Building2,
   MessageSquare,
+  Phone,
+  FileText,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/contexts/auth-context'
@@ -30,7 +32,9 @@ const navigation = [
   { name: 'Agentes', href: '/dashboard/agentes', icon: Bot, roles: ['master', 'admin'] },
   { name: 'Ferramentas', href: '/dashboard/ferramentas', icon: Wrench, roles: ['master', 'admin'] },
   { name: 'API Keys', href: '/dashboard/api-keys', icon: Key, roles: ['master', 'admin'] },
+  { name: 'WhatsApp', href: '/dashboard/whatsapp-numbers', icon: Phone, roles: ['master', 'admin'] },
   { name: 'Chat', href: '/dashboard/chat', icon: MessageSquare, roles: ['master', 'admin', 'operador'] },
+  { name: 'Logs', href: '/dashboard/logs', icon: FileText, roles: ['master', 'admin', 'operador'] },
   { name: 'Analytics', href: '/dashboard/analytics', icon: BarChart3 },
   { name: 'Configurações', href: '/dashboard/configuracoes', icon: Settings },
 ]
@@ -71,8 +75,14 @@ export default function DashboardLayout({
       '/dashboard/api-keys': [
         { key: ['api-keys'], fn: () => api.get('/api/api-keys') },
       ],
+      '/dashboard/whatsapp-numbers': [
+        { key: ['whatsapp-numbers'], fn: () => api.get('/api/whatsapp-numbers') },
+      ],
       '/dashboard/chat': [
-        { key: ['conversas', ''], fn: () => api.get('/api/conversas?search=') },
+        { key: ['conversas', ''], fn: () => api.get('/api/conversas?per_page=50') },
+      ],
+      '/dashboard/logs': [
+        { key: ['logs', '1'], fn: () => api.get('/api/logs?page=1&per_page=30') },
       ],
       '/dashboard/analytics': [
         { key: ['analytics', 'overview'], fn: () => api.get('/api/analytics/overview') },
