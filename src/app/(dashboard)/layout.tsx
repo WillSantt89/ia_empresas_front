@@ -1,8 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useQueryClient } from '@tanstack/react-query'
 import {
   Brain,
   LayoutDashboard,
@@ -20,7 +21,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/contexts/auth-context'
-import { Button } from '@/components/ui/button'
+import { api } from '@/lib/api'
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -42,11 +43,49 @@ export default function DashboardLayout({
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const pathname = usePathname()
   const { user, logout } = useAuth()
+  const queryClient = useQueryClient()
 
   const filteredNavigation = navigation.filter(item => {
     if (!item.roles) return true
     return item.roles.includes(user?.role || '')
   })
+
+  // Prefetch data on link hover for instant navigation
+  const prefetchRoute = useCallback((href: string) => {
+    const prefetchMap: Record<string, { key: string[]; fn: () => Promise<any> }[]> = {
+      '/dashboard': [
+        { key: ['analytics', 'overview'], fn: () => api.get('/api/analytics/overview') },
+      ],
+      '/dashboard/empresas': [
+        { key: ['empresas', '', ''], fn: () => api.get('/api/empresas') },
+      ],
+      '/dashboard/usuarios': [
+        { key: ['usuarios', ''], fn: () => api.get('/api/usuarios?search=') },
+      ],
+      '/dashboard/agentes': [
+        { key: ['agentes', ''], fn: () => api.get('/api/agentes?search=') },
+      ],
+      '/dashboard/ferramentas': [
+        { key: ['tools', ''], fn: () => api.get('/api/tools?search=') },
+      ],
+      '/dashboard/api-keys': [
+        { key: ['api-keys'], fn: () => api.get('/api/api-keys') },
+      ],
+      '/dashboard/chat': [
+        { key: ['conversas', ''], fn: () => api.get('/api/conversas?search=') },
+      ],
+      '/dashboard/analytics': [
+        { key: ['analytics', 'overview'], fn: () => api.get('/api/analytics/overview') },
+      ],
+    }
+
+    const queries = prefetchMap[href]
+    if (queries) {
+      queries.forEach(({ key, fn }) => {
+        queryClient.prefetchQuery({ queryKey: key, queryFn: fn, staleTime: 5 * 60 * 1000 })
+      })
+    }
+  }, [queryClient])
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -86,6 +125,7 @@ export default function DashboardLayout({
                       : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white'
                   )}
                   onClick={() => setSidebarOpen(false)}
+                  onMouseEnter={() => prefetchRoute(item.href)}
                 >
                   <item.icon
                     className={cn(
@@ -150,6 +190,7 @@ export default function DashboardLayout({
                       ? 'bg-gray-100 text-gray-900 dark:bg-gray-700 dark:text-white'
                       : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white'
                   )}
+                  onMouseEnter={() => prefetchRoute(item.href)}
                 >
                   <item.icon
                     className={cn(

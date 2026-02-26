@@ -57,6 +57,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     queryFn: auth.me,
     enabled: mounted && isAuthenticated(),
     retry: false,
+    staleTime: 30 * 60 * 1000, // 30 min - user data rarely changes
+    gcTime: 60 * 60 * 1000, // 1 hour
   })
 
   const isLoading = !mounted || queryLoading

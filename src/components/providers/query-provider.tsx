@@ -8,8 +8,8 @@ import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 const queryClientOptions = {
   defaultOptions: {
     queries: {
-      staleTime: 60 * 1000, // 1 minute
-      gcTime: 5 * 60 * 1000, // 5 minutes
+      staleTime: 5 * 60 * 1000, // 5 minutes - avoid refetching on every navigation
+      gcTime: 15 * 60 * 1000, // 15 minutes
       refetchOnWindowFocus: false,
       retry: (failureCount: number, error: any) => {
         // Don't retry on 4xx errors
