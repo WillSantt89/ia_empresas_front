@@ -1,10 +1,19 @@
-import type { NextConfig } from 'next'
+import path from 'path'
+import { fileURLToPath } from 'url'
 
-const nextConfig: NextConfig = {
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
+
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  output: 'standalone',
   reactStrictMode: true,
-  swcMinify: true,
+  poweredByHeader: false,
   images: {
-    domains: ['localhost'],
+    unoptimized: true,
+  },
+  webpack: (config) => {
+    config.resolve.alias['@'] = path.resolve(__dirname, 'src')
+    return config
   },
   env: {
     NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api',
