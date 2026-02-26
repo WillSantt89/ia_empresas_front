@@ -42,15 +42,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const pathname = usePathname()
   const queryClient = useQueryClient()
-  const [user, setUser] = useState<User | null>(getUser())
+  const [user, setUser] = useState<User | null>(null)
+  const [mounted, setMounted] = useState(false)
+
+  // Only read localStorage after mount to avoid hydration mismatch
+  useEffect(() => {
+    setUser(getUser())
+    setMounted(true)
+  }, [])
 
   // Check authentication status
-  const { data: userData, isLoading } = useQuery({
+  const { data: userData, isLoading: queryLoading } = useQuery({
     queryKey: ['user'],
     queryFn: auth.me,
-    enabled: isAuthenticated(),
+    enabled: mounted && isAuthenticated(),
     retry: false,
   })
+
+  const isLoading = !mounted || queryLoading
 
   useEffect(() => {
     if (userData) {
