@@ -43,31 +43,31 @@ const stats = [
     name: 'Conversas Ativas',
     key: 'total_conversations',
     icon: MessageSquare,
-    color: 'text-blue-600',
-    bgColor: 'bg-blue-100',
+    color: 'text-blue-600 dark:text-blue-400',
+    bgColor: 'bg-blue-100 dark:bg-blue-900/30',
   },
   {
     name: 'Taxa de Sucesso',
     key: 'success_rate',
     icon: TrendingUp,
-    color: 'text-green-600',
-    bgColor: 'bg-green-100',
+    color: 'text-green-600 dark:text-green-400',
+    bgColor: 'bg-green-100 dark:bg-green-900/30',
     format: (value: number) => `${value}%`,
   },
   {
     name: 'Tempo de Resposta',
     key: 'avg_response_time',
     icon: Clock,
-    color: 'text-purple-600',
-    bgColor: 'bg-purple-100',
+    color: 'text-purple-600 dark:text-purple-400',
+    bgColor: 'bg-purple-100 dark:bg-purple-900/30',
     format: (value: number) => `${value}ms`,
   },
   {
     name: 'Tokens Usados',
     key: 'total_tokens',
     icon: Zap,
-    color: 'text-orange-600',
-    bgColor: 'bg-orange-100',
+    color: 'text-orange-600 dark:text-orange-400',
+    bgColor: 'bg-orange-100 dark:bg-orange-900/30',
     format: (value: number) => value.toLocaleString('pt-BR'),
   },
 ]
@@ -91,12 +91,12 @@ export default function DashboardPage() {
     return (
       <div className="p-6">
         <div className="animate-pulse">
-          <div className="h-8 bg-gray-200 rounded w-1/4 mb-6"></div>
+          <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-1/4 mb-6"></div>
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
             {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="bg-white rounded-lg shadow p-6">
-                <div className="h-12 bg-gray-200 rounded mb-4"></div>
-                <div className="h-6 bg-gray-200 rounded w-1/2"></div>
+              <div key={i} className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+                <div className="h-12 bg-gray-200 dark:bg-gray-700 rounded mb-4"></div>
+                <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-1/2"></div>
               </div>
             ))}
           </div>
@@ -259,19 +259,19 @@ export default function DashboardPage() {
             <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
               <thead className="bg-gray-50 dark:bg-gray-900">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Agente
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Conversas
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Mensagens
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Tokens
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Taxa de Sucesso
                   </th>
                 </tr>
@@ -281,7 +281,7 @@ export default function DashboardPage() {
                   <tr key={agent.id}>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
-                        <div className="h-8 w-8 rounded-full bg-gray-400 flex items-center justify-center">
+                        <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center">
                           <Bot className="h-4 w-4 text-white" />
                         </div>
                         <div className="ml-3">
@@ -305,10 +305,10 @@ export default function DashboardPage() {
                         className={cn(
                           'inline-flex px-2 text-xs leading-5 font-semibold rounded-full',
                           agent.success_rate >= 90
-                            ? 'bg-green-100 text-green-800'
+                            ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
                             : agent.success_rate >= 70
-                            ? 'bg-yellow-100 text-yellow-800'
-                            : 'bg-red-100 text-red-800'
+                            ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
+                            : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
                         )}
                       >
                         {Math.round(agent.success_rate)}%

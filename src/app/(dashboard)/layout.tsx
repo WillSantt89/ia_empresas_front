@@ -67,7 +67,7 @@ export default function DashboardLayout({
             </Link>
             <button
               onClick={() => setSidebarOpen(false)}
-              className="text-gray-500 hover:text-gray-600"
+              className="text-gray-500 hover:text-gray-600 dark:text-gray-400 dark:hover:text-gray-200"
             >
               <X className="h-6 w-6" />
             </button>
@@ -92,7 +92,7 @@ export default function DashboardLayout({
                       'mr-3 h-5 w-5 flex-shrink-0',
                       isActive
                         ? 'text-gray-500 dark:text-gray-300'
-                        : 'text-gray-400 group-hover:text-gray-500'
+                        : 'text-gray-400 group-hover:text-gray-500 dark:group-hover:text-gray-300'
                     )}
                   />
                   {item.name}
@@ -103,8 +103,8 @@ export default function DashboardLayout({
           <div className="border-t border-gray-200 dark:border-gray-700 p-4">
             <div className="flex items-center">
               <div className="flex-shrink-0">
-                <div className="h-8 w-8 rounded-full bg-gray-400 flex items-center justify-center">
-                  <span className="text-sm font-medium text-white">
+                <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center">
+                  <span className="text-sm font-medium text-primary-foreground">
                     {user?.nome?.[0]?.toUpperCase()}
                   </span>
                 </div>
@@ -119,7 +119,7 @@ export default function DashboardLayout({
               </div>
               <button
                 onClick={() => logout()}
-                className="ml-auto text-gray-400 hover:text-gray-500"
+                className="ml-auto text-gray-400 hover:text-gray-500 dark:text-gray-500 dark:hover:text-gray-300"
               >
                 <LogOut className="h-5 w-5" />
               </button>
@@ -156,7 +156,7 @@ export default function DashboardLayout({
                       'mr-3 h-5 w-5 flex-shrink-0',
                       isActive
                         ? 'text-gray-500 dark:text-gray-300'
-                        : 'text-gray-400 group-hover:text-gray-500'
+                        : 'text-gray-400 group-hover:text-gray-500 dark:group-hover:text-gray-300'
                     )}
                   />
                   {item.name}
@@ -167,8 +167,8 @@ export default function DashboardLayout({
           <div className="border-t border-gray-200 dark:border-gray-700 p-4">
             <div className="flex items-center">
               <div className="flex-shrink-0">
-                <div className="h-8 w-8 rounded-full bg-gray-400 flex items-center justify-center">
-                  <span className="text-sm font-medium text-white">
+                <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center">
+                  <span className="text-sm font-medium text-primary-foreground">
                     {user?.nome?.[0]?.toUpperCase()}
                   </span>
                 </div>
@@ -183,7 +183,7 @@ export default function DashboardLayout({
               </div>
               <button
                 onClick={() => logout()}
-                className="ml-auto text-gray-400 hover:text-gray-500"
+                className="ml-auto text-gray-400 hover:text-gray-500 dark:text-gray-500 dark:hover:text-gray-300"
                 title="Sair"
               >
                 <LogOut className="h-5 w-5" />
@@ -199,7 +199,7 @@ export default function DashboardLayout({
         <div className="sticky top-0 z-10 flex h-16 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 lg:hidden">
           <button
             onClick={() => setSidebarOpen(true)}
-            className="px-4 text-gray-500 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary"
+            className="px-4 text-gray-500 dark:text-gray-400 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary"
           >
             <Menu className="h-6 w-6" />
           </button>
