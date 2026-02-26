@@ -19,9 +19,8 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 # Set build-time environment variables
-ARG VITE_API_URL
-ENV VITE_API_URL=${VITE_API_URL}
-ENV NEXT_PUBLIC_API_URL=${VITE_API_URL}
+ARG NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
 ENV NEXT_TELEMETRY_DISABLED=1
 
 # Build the application
@@ -42,11 +41,6 @@ RUN adduser --system --uid 1001 nextjs
 COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
-
-# Set runtime environment variables
-ARG VITE_API_URL
-ENV VITE_API_URL=${VITE_API_URL}
-ENV NEXT_PUBLIC_API_URL=${VITE_API_URL}
 
 USER nextjs
 
