@@ -66,14 +66,22 @@ const defaultForm: AgentForm = {
 
 // Labels amigáveis para os modelos
 const modelLabels: Record<string, string> = {
-  'gemini-2.5-pro': 'Gemini 2.5 Pro (mais capaz)',
-  'gemini-2.5-flash': 'Gemini 2.5 Flash (rápido e capaz)',
+  // Gemini 3 series
+  'gemini-3.1-pro-preview': 'Gemini 3.1 Pro Preview (mais avançado)',
+  'gemini-3-pro-preview': 'Gemini 3 Pro Preview',
+  'gemini-3-flash-preview': 'Gemini 3 Flash Preview (rápido + inteligente)',
+  // Gemini 2.5 series
+  'gemini-2.5-pro': 'Gemini 2.5 Pro',
+  'gemini-2.5-flash': 'Gemini 2.5 Flash',
+  'gemini-2.5-flash-lite': 'Gemini 2.5 Flash Lite (econômico)',
+  // Gemini 2.0 series
   'gemini-2.0-pro-001': 'Gemini 2.0 Pro',
   'gemini-2.0-flash-001': 'Gemini 2.0 Flash',
-  'gemini-2.0-flash-lite': 'Gemini 2.0 Flash Lite (econômico)',
-  'gemini-1.5-pro': 'Gemini 1.5 Pro',
-  'gemini-1.5-flash': 'Gemini 1.5 Flash',
-  'gemini-1.5-flash-8b': 'Gemini 1.5 Flash 8B (ultra leve)',
+  'gemini-2.0-flash-lite': 'Gemini 2.0 Flash Lite',
+  // Gemini 1.5 series (legacy)
+  'gemini-1.5-pro': 'Gemini 1.5 Pro (legacy)',
+  'gemini-1.5-flash': 'Gemini 1.5 Flash (legacy)',
+  'gemini-1.5-flash-8b': 'Gemini 1.5 Flash 8B (legacy)',
 }
 
 const providerLabels: Record<string, string> = {
