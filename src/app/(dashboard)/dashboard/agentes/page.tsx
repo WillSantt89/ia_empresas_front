@@ -53,14 +53,14 @@ export default function AgentesPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {data?.agentes?.map((agente: any) => (
+          {data?.agents?.map((agente: any) => (
             <div key={agente.id} className="bg-white dark:bg-gray-800 rounded-lg shadow hover:shadow-md transition-shadow p-6">
               <div className="flex items-start justify-between mb-4">
                 <div className="h-12 w-12 rounded-full bg-primary flex items-center justify-center">
                   <Bot className="h-6 w-6 text-primary-foreground" />
                 </div>
-                <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${agente.ativo ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'}`}>
-                  {agente.ativo ? 'Ativo' : 'Inativo'}
+                <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${agente.is_active ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'}`}>
+                  {agente.is_active ? 'Ativo' : 'Inativo'}
                 </span>
               </div>
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">{agente.nome}</h3>
@@ -70,7 +70,7 @@ export default function AgentesPage() {
               <div className="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400">
                 <div className="flex items-center gap-1">
                   <Zap className="h-3 w-3" />
-                  <span>{agente.total_tools || 0} tools</span>
+                  <span>{agente.tool_count || 0} tools</span>
                 </div>
                 <div className="flex items-center gap-1">
                   <span>{agente.modelo || 'gemini'}</span>

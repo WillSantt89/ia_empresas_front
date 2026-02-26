@@ -71,7 +71,7 @@ export default function ChatPage() {
         </div>
       ) : (
         <div className="space-y-3">
-          {data?.conversas?.map((conversa: any) => (
+          {(Array.isArray(data) ? data : [])?.map((conversa: any) => (
             <div key={conversa.id} className="bg-white dark:bg-gray-800 rounded-lg shadow hover:shadow-md transition-shadow p-4 cursor-pointer">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -80,17 +80,17 @@ export default function ChatPage() {
                   </div>
                   <div>
                     <p className="text-sm font-medium text-gray-900 dark:text-white">
-                      {conversa.contato_nome || conversa.contato_numero || 'Desconhecido'}
+                      {conversa.agente_nome || conversa.inbox_nome || 'Desconhecido'}
                     </p>
                     <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-1">
-                      {conversa.ultima_mensagem || 'Sem mensagens'}
+                      {conversa.total_mensagens || 0} mensagens
                     </p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
-                  <div className={cn('flex items-center gap-1 text-xs font-medium', controlColors[conversa.controle] || controlColors.ia)}>
-                    {conversa.controle === 'ia' ? <Bot className="h-3 w-3" /> : <User className="h-3 w-3" />}
-                    {conversa.controle === 'ia' ? 'IA' : 'Humano'}
+                  <div className={cn('flex items-center gap-1 text-xs font-medium', controlColors[conversa.controlado_por] || controlColors.ia)}>
+                    {conversa.controlado_por === 'ia' ? <Bot className="h-3 w-3" /> : <User className="h-3 w-3" />}
+                    {conversa.controlado_por === 'ia' ? 'IA' : 'Humano'}
                   </div>
                   <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${statusColors[conversa.status] || statusColors.ativo}`}>
                     {statusLabels[conversa.status] || conversa.status}

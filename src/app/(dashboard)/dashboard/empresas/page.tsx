@@ -1,48 +1,39 @@
 'use client'
 
 import { useQuery } from '@tanstack/react-query'
-import { Building2, Plus, Search } from 'lucide-react'
-import { useState } from 'react'
+import { Building2, Users, Bot, Key } from 'lucide-react'
 import { api } from '@/lib/api'
+import { useAuth } from '@/contexts/auth-context'
 
 export default function EmpresasPage() {
-  const [search, setSearch] = useState('')
+  const { user } = useAuth()
 
   const { data, isLoading } = useQuery({
-    queryKey: ['empresas', search],
-    queryFn: () => api.get(`/api/empresas?search=${search}`),
+    queryKey: ['empresa', 'me'],
+    queryFn: () => api.get('/api/empresas/me'),
   })
+
+  const { data: statsData } = useQuery({
+    queryKey: ['empresa', 'stats'],
+    queryFn: () => api.get('/api/empresas/stats'),
+  })
+
+  const empresa = data?.empresa
+  const limits = data?.limits
+  const usage = data?.usage
+  const stats = statsData
 
   return (
     <div className="p-6">
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Empresas</h1>
-          <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-            Gerencie as empresas da plataforma
-          </p>
-        </div>
-        <button className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90">
-          <Plus className="h-4 w-4" />
-          Nova Empresa
-        </button>
-      </div>
-
-      <div className="mb-6">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-          <input
-            type="text"
-            placeholder="Buscar empresas..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 pl-10 pr-4 py-2 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-          />
-        </div>
+      <div className="mb-8">
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Empresa</h1>
+        <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+          Informações e estatísticas da sua empresa
+        </p>
       </div>
 
       {isLoading ? (
-        <div className="space-y-4">
+        <div className="space-y-6">
           {[1, 2, 3].map((i) => (
             <div key={i} className="animate-pulse bg-white dark:bg-gray-800 rounded-lg shadow p-6">
               <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/3 mb-3"></div>
@@ -51,51 +42,98 @@ export default function EmpresasPage() {
           ))}
         </div>
       ) : (
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
-          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-            <thead className="bg-gray-50 dark:bg-gray-900">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Empresa</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Plano</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Agentes</th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Ações</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-              {data?.empresas?.map((empresa: any) => (
-                <tr key={empresa.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center">
-                      <div className="h-10 w-10 rounded-full bg-primary flex items-center justify-center">
-                        <Building2 className="h-5 w-5 text-primary-foreground" />
-                      </div>
-                      <div className="ml-4">
-                        <div className="text-sm font-medium text-gray-900 dark:text-white">{empresa.nome}</div>
-                        <div className="text-sm text-gray-500 dark:text-gray-400">{empresa.email}</div>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${empresa.ativo ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'}`}>
-                      {empresa.ativo ? 'Ativo' : 'Inativo'}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">{empresa.plano || '-'}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">{empresa.total_agentes || 0}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <button className="text-primary hover:text-primary/80">Editar</button>
-                  </td>
-                </tr>
-              )) || (
-                <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center text-sm text-gray-500 dark:text-gray-400">
-                    Nenhuma empresa encontrada
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+        <div className="space-y-6">
+          {/* Company Info */}
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <div className="flex items-center gap-4 mb-6">
+              <div className="h-16 w-16 rounded-full bg-primary flex items-center justify-center">
+                <Building2 className="h-8 w-8 text-primary-foreground" />
+              </div>
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">{empresa?.nome}</h2>
+                <p className="text-sm text-gray-500 dark:text-gray-400">{empresa?.email}</p>
+                <span className={`inline-flex mt-1 px-2 py-1 text-xs font-semibold rounded-full ${empresa?.is_active ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'}`}>
+                  {empresa?.is_active ? 'Ativo' : 'Inativo'}
+                </span>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+              <div>
+                <span className="text-gray-500 dark:text-gray-400">Telefone:</span>
+                <span className="ml-2 text-gray-900 dark:text-white">{empresa?.telefone || '-'}</span>
+              </div>
+              <div>
+                <span className="text-gray-500 dark:text-gray-400">Documento:</span>
+                <span className="ml-2 text-gray-900 dark:text-white">{empresa?.documento || '-'}</span>
+              </div>
+              <div>
+                <span className="text-gray-500 dark:text-gray-400">Endereço:</span>
+                <span className="ml-2 text-gray-900 dark:text-white">{empresa?.endereco || '-'}</span>
+              </div>
+              <div>
+                <span className="text-gray-500 dark:text-gray-400">Criado em:</span>
+                <span className="ml-2 text-gray-900 dark:text-white">{empresa?.created_at ? new Date(empresa.created_at).toLocaleDateString('pt-BR') : '-'}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Stats Cards */}
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+              <div className="flex items-center">
+                <div className="rounded-md p-3 bg-blue-100 dark:bg-blue-900/30">
+                  <Users className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Usuários</p>
+                  <p className="text-2xl font-semibold text-gray-900 dark:text-white">
+                    {usage?.usuarios_ativos || 0} / {limits?.max_usuarios || 0}
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+              <div className="flex items-center">
+                <div className="rounded-md p-3 bg-green-100 dark:bg-green-900/30">
+                  <Bot className="h-6 w-6 text-green-600 dark:text-green-400" />
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Agentes</p>
+                  <p className="text-2xl font-semibold text-gray-900 dark:text-white">
+                    {usage?.agentes_ativos || 0} / {limits?.max_agentes || 0}
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+              <div className="flex items-center">
+                <div className="rounded-md p-3 bg-purple-100 dark:bg-purple-900/30">
+                  <Key className="h-6 w-6 text-purple-600 dark:text-purple-400" />
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Mensagens/Mês</p>
+                  <p className="text-2xl font-semibold text-gray-900 dark:text-white">
+                    {usage?.mensagens_processadas?.toLocaleString('pt-BR') || 0}
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">de {limits?.max_mensagens_mes?.toLocaleString('pt-BR') || 0}</p>
+                </div>
+              </div>
+            </div>
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+              <div className="flex items-center">
+                <div className="rounded-md p-3 bg-orange-100 dark:bg-orange-900/30">
+                  <Building2 className="h-6 w-6 text-orange-600 dark:text-orange-400" />
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Tokens/Mês</p>
+                  <p className="text-2xl font-semibold text-gray-900 dark:text-white">
+                    {usage?.tokens_usados?.toLocaleString('pt-BR') || 0}
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">de {limits?.max_tokens_mes?.toLocaleString('pt-BR') || 0}</p>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>

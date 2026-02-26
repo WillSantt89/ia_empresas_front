@@ -55,36 +55,36 @@ export default function ApiKeysPage() {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Agente</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Key</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Uso</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Criado por</th>
                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Ações</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-              {data?.api_keys?.map((key: any) => (
+              {data?.keys?.map((key: any) => (
                 <tr key={key.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
                       <Key className="h-5 w-5 text-gray-400 mr-3" />
-                      <span className="text-sm font-medium text-gray-900 dark:text-white">{key.agente_nome}</span>
+                      <span className="text-sm font-medium text-gray-900 dark:text-white">{key.agente?.nome || key.nome}</span>
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center gap-2">
                       <code className="text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-2 py-1 rounded font-mono">
-                        {key.key_preview || '••••••••'}
+                        {key.nome || '••••••••'}
                       </code>
-                      <button onClick={() => copyToClipboard(key.key_preview)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                      <button onClick={() => copyToClipboard(key.nome)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
                         <Copy className="h-4 w-4" />
                       </button>
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${statusColors[key.status] || statusColors.ativa}`}>
-                      {key.status}
+                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${key.is_active ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'}`}>
+                      {key.is_active ? 'Ativa' : 'Inativa'}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                    {key.total_requests || 0} requests
+                    {key.created_by || '-'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <button className="text-blue-600 hover:text-blue-500 dark:text-blue-400 mr-3">
