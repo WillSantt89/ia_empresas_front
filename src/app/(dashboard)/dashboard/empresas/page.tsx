@@ -1,7 +1,7 @@
 'use client'
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Building2, Users, Bot, Plus, Search, Edit, Power, Eye, X, ChevronDown } from 'lucide-react'
+import { Building2, Users, Bot, Plus, Search, Edit, Power, Eye, X, KeyRound } from 'lucide-react'
 import { useState } from 'react'
 import { api } from '@/lib/api'
 import { useAuth } from '@/contexts/auth-context'
@@ -76,9 +76,12 @@ export default function EmpresasPage() {
   const [showModal, setShowModal] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
   const [showDetailModal, setShowDetailModal] = useState(false)
+  const [showResetModal, setShowResetModal] = useState(false)
   const [formData, setFormData] = useState<CreateEmpresaData>(initialFormData)
   const [editData, setEditData] = useState<any>(null)
   const [detailData, setDetailData] = useState<any>(null)
+  const [resetTarget, setResetTarget] = useState<{ empresaId: string; userId: string; userName: string; userEmail: string } | null>(null)
+  const [novaSenha, setNovaSenha] = useState('')
   const [filterTipo, setFilterTipo] = useState('')
 
   // Master: list all empresas
@@ -133,6 +136,43 @@ export default function EmpresasPage() {
       toast.error(error.message || 'Erro')
     },
   })
+
+  // Reset password
+  const resetSenhaMutation = useMutation({
+    mutationFn: ({ empresaId, userId, nova_senha }: { empresaId: string; userId: string; nova_senha: string }) =>
+      api.put(`/api/empresas/${empresaId}/usuarios/${userId}/reset-senha`, { nova_senha }),
+    onSuccess: (result) => {
+      setShowResetModal(false)
+      setResetTarget(null)
+      setNovaSenha('')
+      toast.success(result.message || 'Senha resetada com sucesso!')
+    },
+    onError: (error: any) => {
+      toast.error(error.message || 'Erro ao resetar senha')
+    },
+  })
+
+  const openResetSenha = (empresaId: string, usuario: any) => {
+    setResetTarget({
+      empresaId,
+      userId: usuario.id,
+      userName: usuario.nome,
+      userEmail: usuario.email,
+    })
+    setNovaSenha('')
+    setShowResetModal(true)
+  }
+
+  const handleResetSenha = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (resetTarget) {
+      resetSenhaMutation.mutate({
+        empresaId: resetTarget.empresaId,
+        userId: resetTarget.userId,
+        nova_senha: novaSenha,
+      })
+    }
+  }
 
   // Get empresa details
   const loadDetails = async (id: string) => {
@@ -456,6 +496,52 @@ export default function EmpresasPage() {
         </Modal>
       )}
 
+      {/* RESET SENHA MODAL */}
+      {showResetModal && resetTarget && (
+        <Modal title="Resetar Senha" onClose={() => { setShowResetModal(false); setResetTarget(null) }}>
+          <form onSubmit={handleResetSenha} className="space-y-4">
+            <div className="bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-md p-4">
+              <p className="text-sm text-orange-800 dark:text-orange-300">
+                Voce esta resetando a senha do usuario:
+              </p>
+              <p className="text-sm font-semibold text-orange-900 dark:text-orange-200 mt-1">
+                {resetTarget.userName} ({resetTarget.userEmail})
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nova Senha</label>
+              <input
+                type="password"
+                value={novaSenha}
+                onChange={(e) => setNovaSenha(e.target.value)}
+                required
+                minLength={8}
+                placeholder="Minimo 8 caracteres"
+                className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+              />
+            </div>
+
+            <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+              <button
+                type="button"
+                onClick={() => { setShowResetModal(false); setResetTarget(null) }}
+                className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                disabled={resetSenhaMutation.isPending || novaSenha.length < 8}
+                className="px-4 py-2 text-sm font-medium text-white bg-orange-600 rounded-md hover:bg-orange-700 disabled:opacity-50"
+              >
+                {resetSenhaMutation.isPending ? 'Resetando...' : 'Resetar Senha'}
+              </button>
+            </div>
+          </form>
+        </Modal>
+      )}
+
       {/* DETAIL MODAL */}
       {showDetailModal && detailData && (
         <Modal title={`Detalhes: ${detailData.empresa?.nome}`} onClose={() => setShowDetailModal(false)} wide>
@@ -499,6 +585,13 @@ export default function EmpresasPage() {
                         <span className={`px-2 py-1 text-xs rounded-full ${u.ativo ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'}`}>
                           {u.ativo ? 'Ativo' : 'Inativo'}
                         </span>
+                        <button
+                          onClick={() => openResetSenha(detailData.empresa?.id, u)}
+                          className="ml-1 p-1 text-orange-600 hover:text-orange-800 dark:text-orange-400 dark:hover:text-orange-300"
+                          title="Resetar senha"
+                        >
+                          <KeyRound className="h-4 w-4" />
+                        </button>
                       </div>
                     </div>
                   ))}
