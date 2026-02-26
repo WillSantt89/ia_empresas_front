@@ -1,16 +1,11 @@
 'use client'
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Bot, Plus, Search, X, Zap, Trash2, Eye, EyeOff } from 'lucide-react'
+import { Bot, Plus, Search, X, Zap, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { api } from '@/lib/api'
 import { useAuth } from '@/contexts/auth-context'
 import toast from 'react-hot-toast'
-
-const modelos = [
-  { value: 'gemini-2.0-flash-001', label: 'Gemini 2.0 Flash' },
-  { value: 'gemini-2.0-pro-001', label: 'Gemini 2.0 Pro' },
-]
 
 function Modal({ open, onClose, title, children, wide }: { open: boolean; onClose: () => void; title: string; children: React.ReactNode; wide?: boolean }) {
   if (!open) return null
@@ -52,6 +47,7 @@ const btnDanger = "inline-flex items-center gap-2 rounded-md bg-red-600 px-4 py-
 interface AgentForm {
   nome: string
   descricao: string
+  provider: string
   modelo: string
   prompt_ativo: string
   temperatura: number
@@ -61,10 +57,29 @@ interface AgentForm {
 const defaultForm: AgentForm = {
   nome: '',
   descricao: '',
+  provider: 'google',
   modelo: 'gemini-2.0-flash-001',
   prompt_ativo: '',
   temperatura: 0.3,
   max_tokens: 2048,
+}
+
+// Labels amigáveis para os modelos
+const modelLabels: Record<string, string> = {
+  'gemini-2.5-pro': 'Gemini 2.5 Pro (mais capaz)',
+  'gemini-2.5-flash': 'Gemini 2.5 Flash (rápido e capaz)',
+  'gemini-2.0-pro-001': 'Gemini 2.0 Pro',
+  'gemini-2.0-flash-001': 'Gemini 2.0 Flash',
+  'gemini-2.0-flash-lite': 'Gemini 2.0 Flash Lite (econômico)',
+  'gemini-1.5-pro': 'Gemini 1.5 Pro',
+  'gemini-1.5-flash': 'Gemini 1.5 Flash',
+  'gemini-1.5-flash-8b': 'Gemini 1.5 Flash 8B (ultra leve)',
+}
+
+const providerLabels: Record<string, string> = {
+  google: 'Google AI',
+  claude: 'Anthropic Claude',
+  grok: 'xAI Grok',
 }
 
 export default function AgentesPage() {
@@ -81,6 +96,17 @@ export default function AgentesPage() {
     queryKey: ['agentes', search],
     queryFn: () => api.get(`/api/agentes?search=${search}`),
   })
+
+  // Load providers and models from backend
+  const { data: providersData } = useQuery({
+    queryKey: ['agentes-providers'],
+    queryFn: () => api.get('/api/agentes/providers'),
+    staleTime: 60 * 60 * 1000, // 1h - rarely changes
+  })
+
+  const providers = providersData?.providers || []
+  const currentProvider = providers.find((p: any) => p.id === form.provider)
+  const availableModels: string[] = currentProvider?.modelos || []
 
   const createMutation = useMutation({
     mutationFn: (data: any) => api.post('/api/agentes', data),
@@ -130,6 +156,7 @@ export default function AgentesPage() {
     setForm({
       nome: agente.nome || '',
       descricao: agente.descricao || '',
+      provider: agente.provider || 'google',
       modelo: agente.modelo || 'gemini-2.0-flash-001',
       prompt_ativo: agente.prompt_ativo || '',
       temperatura: agente.temperatura ?? 0.3,
@@ -144,6 +171,12 @@ export default function AgentesPage() {
     resetForm()
   }
 
+  const handleProviderChange = (newProvider: string) => {
+    const provider = providers.find((p: any) => p.id === newProvider)
+    const firstModel = provider?.modelos?.[0] || ''
+    setForm({ ...form, provider: newProvider, modelo: firstModel })
+  }
+
   const handleCreate = () => {
     if (!form.nome || !form.prompt_ativo) {
       toast.error('Preencha nome e prompt do agente')
@@ -156,6 +189,7 @@ export default function AgentesPage() {
     createMutation.mutate({
       nome: form.nome,
       descricao: form.descricao || undefined,
+      provider: form.provider,
       modelo: form.modelo,
       prompt_ativo: form.prompt_ativo,
       temperatura: form.temperatura,
@@ -173,6 +207,7 @@ export default function AgentesPage() {
       data: {
         nome: form.nome,
         descricao: form.descricao || undefined,
+        provider: form.provider,
         modelo: form.modelo,
         prompt_ativo: form.prompt_ativo,
         temperatura: form.temperatura,
@@ -191,13 +226,28 @@ export default function AgentesPage() {
       <FormField label="Descrição">
         <input type="text" value={form.descricao} onChange={(e) => setForm({ ...form, descricao: e.target.value })} className={inputClass} placeholder="Breve descrição do agente" />
       </FormField>
-      <FormField label="Modelo" required>
-        <select value={form.modelo} onChange={(e) => setForm({ ...form, modelo: e.target.value })} className={selectClass}>
-          {modelos.map((m) => (
-            <option key={m.value} value={m.value}>{m.label}</option>
-          ))}
-        </select>
-      </FormField>
+      <div className="grid grid-cols-2 gap-4">
+        <FormField label="Provedor de IA" required>
+          <select value={form.provider} onChange={(e) => handleProviderChange(e.target.value)} className={selectClass}>
+            {providers.length > 0 ? providers.map((p: any) => (
+              <option key={p.id} value={p.id} disabled={!p.disponivel}>
+                {p.nome}{!p.disponivel ? ' (em breve)' : ''}
+              </option>
+            )) : (
+              <option value="google">Google AI</option>
+            )}
+          </select>
+        </FormField>
+        <FormField label="Modelo" required>
+          <select value={form.modelo} onChange={(e) => setForm({ ...form, modelo: e.target.value })} className={selectClass}>
+            {availableModels.length > 0 ? availableModels.map((m: string) => (
+              <option key={m} value={m}>{modelLabels[m] || m}</option>
+            )) : (
+              <option value={form.modelo}>{modelLabels[form.modelo] || form.modelo}</option>
+            )}
+          </select>
+        </FormField>
+      </div>
       <FormField label="Prompt do Sistema" required hint="Instruções que definem o comportamento do agente. Mínimo 10 caracteres.">
         <textarea
           value={form.prompt_ativo}
@@ -296,9 +346,12 @@ export default function AgentesPage() {
                     <Zap className="h-3 w-3" />
                     <span>{agente.tool_count || 0} tools</span>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <span>{agente.modelo || 'gemini'}</span>
-                  </div>
+                  <span className="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-[10px] font-mono">
+                    {providerLabels[agente.provider] || 'Google AI'}
+                  </span>
+                  <span className="text-[10px] font-mono truncate">
+                    {agente.modelo || 'gemini'}
+                  </span>
                 </div>
                 {canManage && (
                   <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 flex justify-between">
