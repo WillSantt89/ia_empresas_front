@@ -1,7 +1,7 @@
 'use client'
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Building2, Users, Bot, Plus, Search, Edit, Power, Eye, X, KeyRound, CreditCard, FileText, DollarSign, History } from 'lucide-react'
+import { Building2, Users, Bot, Plus, Search, Edit, Power, Eye, EyeOff, X, KeyRound, CreditCard, FileText, DollarSign, History, Webhook, Copy, RefreshCw, Loader2 } from 'lucide-react'
 import { useState } from 'react'
 import { api } from '@/lib/api'
 import { useAuth } from '@/contexts/auth-context'
@@ -89,6 +89,8 @@ export default function EmpresasPage() {
   const [showAssinaturaEdit, setShowAssinaturaEdit] = useState(false)
   const [selectedPlanoId, setSelectedPlanoId] = useState('')
   const [assinaturaStatus, setAssinaturaStatus] = useState('')
+  const [showWebhookToken, setShowWebhookToken] = useState(false)
+  const [generatingToken, setGeneratingToken] = useState(false)
 
   // Load planos for subscription management
   const { data: planosData } = useQuery({
@@ -231,6 +233,37 @@ export default function EmpresasPage() {
     if (selectedPlanoId) payload.plano_id = selectedPlanoId
     if (assinaturaStatus) payload.status = assinaturaStatus
     updateAssinaturaMutation.mutate({ empresaId: detailData.empresa.id, ...payload })
+  }
+
+  const handleGenerateWebhookToken = async (empresaId: string) => {
+    if (detailData?.empresa?.webhook_token) {
+      if (!confirm('Gerar novo token vai invalidar o token atual. Continuar?')) return
+    }
+    setGeneratingToken(true)
+    try {
+      const result = await api.post(`/api/empresas/${empresaId}/webhook-token`, {})
+      const tokenData = result?.data || result
+      setDetailData((prev: any) => ({
+        ...prev,
+        empresa: {
+          ...prev.empresa,
+          webhook_token: tokenData.webhook_token
+        }
+      }))
+      toast.success('Token gerado com sucesso!')
+    } catch (err: any) {
+      toast.error(err.message || 'Erro ao gerar token')
+    } finally {
+      setGeneratingToken(false)
+    }
+  }
+
+  const copyToClipboard = (text: string, label: string) => {
+    navigator.clipboard.writeText(text).then(() => {
+      toast.success(`${label} copiado!`)
+    }).catch(() => {
+      toast.error('Falha ao copiar')
+    })
   }
 
   // Open edit modal
@@ -670,6 +703,87 @@ export default function EmpresasPage() {
                 ) : (
                   <p className="text-sm text-gray-500 dark:text-gray-400">Nenhum usuario</p>
                 )}
+              </Section>
+
+              {/* Webhook n8n */}
+              <Section title="Webhook n8n">
+                <div className="bg-gray-50 dark:bg-gray-700/30 rounded-lg p-4 space-y-3">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Webhook className="h-4 w-4 text-gray-500" />
+                    <span className={`inline-flex h-2 w-2 rounded-full ${detailData.empresa?.webhook_token ? 'bg-green-500' : 'bg-gray-300'}`}></span>
+                    <span className="text-xs text-gray-500 dark:text-gray-400">
+                      {detailData.empresa?.webhook_token ? 'Token configurado' : 'Token nao gerado'}
+                    </span>
+                  </div>
+
+                  {/* Webhook URL */}
+                  <div>
+                    <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">URL do Webhook</label>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={detailData.empresa?.webhook_token
+                          ? `${process.env.NEXT_PUBLIC_API_URL || 'https://wschat-ia-empresas-back.fldxjw.easypanel.host'}/api/webhooks/n8n`
+                          : 'Gere um token primeiro'}
+                        readOnly
+                        className="flex-1 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-1.5 text-xs text-gray-700 dark:text-gray-300 cursor-default"
+                      />
+                      {detailData.empresa?.webhook_token && (
+                        <button
+                          onClick={() => copyToClipboard(
+                            `${process.env.NEXT_PUBLIC_API_URL || 'https://wschat-ia-empresas-back.fldxjw.easypanel.host'}/api/webhooks/n8n`,
+                            'URL'
+                          )}
+                          className="p-1.5 text-gray-400 hover:text-gray-600 border border-gray-300 dark:border-gray-600 rounded-md"
+                          title="Copiar URL"
+                        >
+                          <Copy className="h-3.5 w-3.5" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Token */}
+                  <div>
+                    <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Token de Autenticacao</label>
+                    <div className="flex gap-2">
+                      <div className="relative flex-1">
+                        <input
+                          type={showWebhookToken ? 'text' : 'password'}
+                          value={detailData.empresa?.webhook_token || ''}
+                          readOnly
+                          placeholder="Nenhum token gerado"
+                          className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-1.5 pr-8 text-xs text-gray-700 dark:text-gray-300 cursor-default"
+                        />
+                        {detailData.empresa?.webhook_token && (
+                          <button
+                            onClick={() => setShowWebhookToken(!showWebhookToken)}
+                            className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                          >
+                            {showWebhookToken ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                          </button>
+                        )}
+                      </div>
+                      {detailData.empresa?.webhook_token && (
+                        <button
+                          onClick={() => copyToClipboard(detailData.empresa.webhook_token, 'Token')}
+                          className="p-1.5 text-gray-400 hover:text-gray-600 border border-gray-300 dark:border-gray-600 rounded-md"
+                          title="Copiar token"
+                        >
+                          <Copy className="h-3.5 w-3.5" />
+                        </button>
+                      )}
+                      <button
+                        onClick={() => handleGenerateWebhookToken(detailData.empresa.id)}
+                        disabled={generatingToken}
+                        className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-100 dark:hover:bg-gray-600 disabled:opacity-50"
+                      >
+                        {generatingToken ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
+                        {detailData.empresa?.webhook_token ? 'Regenerar' : 'Gerar'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
               </Section>
             </div>
           )}
