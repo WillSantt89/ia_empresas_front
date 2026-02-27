@@ -143,12 +143,16 @@ export default function AgentesPage() {
     enabled: !!editingAgent?.id && showEditModal && editTab === 'prompts',
   })
 
-  // Sync tools from agent detail
+  // Sync tools and prompt from agent detail
   useEffect(() => {
     if (agentDetail?.agent?.tools) {
       setSelectedToolIds(agentDetail.agent.tools.map((t: any) => t.id))
     } else if (agentDetail?.agent && !agentDetail.agent.tools) {
       setSelectedToolIds([])
+    }
+    // Sync prompt_ativo from detail (in case listing didn't include it)
+    if (agentDetail?.agent?.prompt_ativo && !form.prompt_ativo) {
+      setForm(prev => ({ ...prev, prompt_ativo: agentDetail.agent.prompt_ativo }))
     }
   }, [agentDetail])
 
