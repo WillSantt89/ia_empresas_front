@@ -1,7 +1,7 @@
 'use client'
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Settings, User, Building2, Bell, Shield, Headphones, Save, Loader2, CheckCircle, Globe, TestTube, Webhook, Copy, RefreshCw, Eye, EyeOff } from 'lucide-react'
+import { Settings, User, Building2, Shield, Headphones, Save, Loader2, Globe, TestTube, Webhook, Copy, RefreshCw, Eye, EyeOff } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { api } from '@/lib/api'
 import { useAuth } from '@/contexts/auth-context'
@@ -486,7 +486,7 @@ export default function ConfiguracoesPage() {
                     <li>Adicione um node HTTP Request no n8n</li>
                     <li>Configure como POST para a URL do webhook acima</li>
                     <li>Adicione o header: <code className="bg-blue-100 dark:bg-blue-800/40 px-1 rounded">x-webhook-token: {'{'}seu token{'}'}</code></li>
-                    <li>No body (JSON), envie: <code className="bg-blue-100 dark:bg-blue-800/40 px-1 rounded">{'{'} "message": "...", "phone": "5511...", "name": "..." {'}'}</code></li>
+                    <li>No body (JSON), envie: <code className="bg-blue-100 dark:bg-blue-800/40 px-1 rounded">{'{ "message": "...", "phone": "5511...", "name": "..." }'}</code></li>
                     <li>A resposta da IA vira em <code className="bg-blue-100 dark:bg-blue-800/40 px-1 rounded">data.response</code></li>
                   </ol>
                 </div>
