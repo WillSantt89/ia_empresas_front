@@ -69,7 +69,7 @@ export default function ApiKeysPage() {
     nome: '',
     prioridade: 1,
     gemini_api_key: '',
-    status: 'ativo',
+    status: 'ativa',
   })
   const [rotateKey, setRotateKey] = useState('')
 
@@ -149,7 +149,7 @@ export default function ApiKeysPage() {
       nome: key.nome || '',
       prioridade: key.prioridade || 1,
       gemini_api_key: '',
-      status: key.status || 'ativo',
+      status: key.status || 'ativa',
     })
     setShowApiKey(false)
     setShowEditModal(true)
@@ -157,7 +157,7 @@ export default function ApiKeysPage() {
   const closeEditModal = () => {
     setShowEditModal(false)
     setSelectedKey(null)
-    setEditForm({ nome: '', prioridade: 1, gemini_api_key: '', status: 'ativo' })
+    setEditForm({ nome: '', prioridade: 1, gemini_api_key: '', status: 'ativa' })
   }
 
   const openRotateModal = (key: any) => {
