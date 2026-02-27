@@ -169,7 +169,15 @@ export default function AgentesPage() {
       toast.success('Agente criado com sucesso!')
       closeCreateModal()
     },
-    onError: (err: any) => toast.error(err.message || 'Erro ao criar agente'),
+    onError: (err: any) => {
+      const details = err.details
+      if (details && Array.isArray(details)) {
+        const msgs = details.map((d: any) => d.message).join(', ')
+        toast.error(`Erro de validacao: ${msgs}`)
+      } else {
+        toast.error(err.message || 'Erro ao criar agente')
+      }
+    },
   })
 
   const updateMutation = useMutation({
@@ -178,7 +186,15 @@ export default function AgentesPage() {
       queryClient.invalidateQueries({ queryKey: ['agentes'] })
       toast.success('Agente atualizado com sucesso!')
     },
-    onError: (err: any) => toast.error(err.message || 'Erro ao atualizar agente'),
+    onError: (err: any) => {
+      const details = err.details
+      if (details && Array.isArray(details)) {
+        const msgs = details.map((d: any) => d.message).join(', ')
+        toast.error(`Erro de validacao: ${msgs}`)
+      } else {
+        toast.error(err.message || 'Erro ao atualizar agente')
+      }
+    },
   })
 
   const toolsMutation = useMutation({
@@ -302,12 +318,24 @@ export default function AgentesPage() {
   }
 
   const handleCreate = () => {
-    if (!form.nome || !form.prompt_ativo) {
-      toast.error('Preencha nome e prompt do agente')
+    if (!form.nome.trim()) {
+      toast.error('Preencha o nome do agente')
       return
     }
-    if (form.prompt_ativo.length < 10) {
+    if (form.nome.trim().length < 2) {
+      toast.error('O nome deve ter no minimo 2 caracteres')
+      return
+    }
+    if (!form.prompt_ativo.trim()) {
+      toast.error('Preencha o prompt do agente')
+      return
+    }
+    if (form.prompt_ativo.trim().length < 10) {
       toast.error('O prompt deve ter no minimo 10 caracteres')
+      return
+    }
+    if (!form.modelo) {
+      toast.error('Selecione um modelo de IA')
       return
     }
     createMutation.mutate({
