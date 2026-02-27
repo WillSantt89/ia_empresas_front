@@ -45,6 +45,7 @@ export default function ConfiguracoesPage() {
   const { user } = useAuth()
   const queryClient = useQueryClient()
   const canEdit = user?.role === 'master' || user?.role === 'admin'
+  const isMaster = user?.role === 'master'
 
   // Load configuracoes
   const { data: configData, isLoading } = useQuery({
@@ -375,8 +376,8 @@ export default function ConfiguracoesPage() {
           </Section>
         )}
 
-        {/* Webhook n8n */}
-        {canEdit && (
+        {/* Webhook n8n - somente master */}
+        {isMaster && (
           <Section
             icon={Webhook}
             title="Webhook n8n"
