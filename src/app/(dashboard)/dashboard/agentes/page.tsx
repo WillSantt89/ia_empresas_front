@@ -212,10 +212,22 @@ export default function AgentesPage() {
     mutationFn: ({ id, message }: { id: string; message: string }) =>
       api.post(`/api/agentes/${id}/test`, { message }),
     onSuccess: (data: any) => {
+      if (data.tools_called && data.tools_called.length > 0) {
+        const toolNames = data.tools_called.map((t: any) => t.name).join(', ')
+        setTestMessages(prev => [...prev, { role: 'tool', content: `Ferramentas usadas: ${toolNames}` }])
+      }
       setTestMessages(prev => [...prev, { role: 'assistant', content: data.response || 'Sem resposta' }])
     },
     onError: (err: any) => {
       setTestMessages(prev => [...prev, { role: 'error', content: err.message || 'Erro ao testar agente' }])
+    },
+  })
+
+  const clearTestMutation = useMutation({
+    mutationFn: (id: string) => api.delete(`/api/agentes/${id}/test`),
+    onSuccess: () => {
+      setTestMessages([])
+      toast.success('Historico de teste limpo')
     },
   })
 
@@ -671,13 +683,16 @@ export default function AgentesPage() {
         )}
         {testMessages.map((msg, i) => (
           <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-            <div className={`max-w-[80%] rounded-lg px-3 py-2 text-sm ${
+            <div className={`max-w-[80%] rounded-lg px-3 py-2 text-sm whitespace-pre-wrap ${
               msg.role === 'user'
                 ? 'bg-primary text-primary-foreground'
                 : msg.role === 'error'
                 ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
+                : msg.role === 'tool'
+                ? 'bg-yellow-50 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300 border border-yellow-200 dark:border-yellow-800 italic'
                 : 'bg-gray-100 text-gray-900 dark:bg-gray-700 dark:text-white'
             }`}>
+              {msg.role === 'tool' && <Wrench className="h-3 w-3 inline mr-1" />}
               {msg.content}
             </div>
           </div>
@@ -707,6 +722,16 @@ export default function AgentesPage() {
         >
           <Send className="h-4 w-4" />
         </button>
+        {testMessages.length > 0 && (
+          <button
+            onClick={() => editingAgent && clearTestMutation.mutate(editingAgent.id)}
+            disabled={clearTestMutation.isPending}
+            className="px-3 py-2 text-xs text-gray-500 hover:text-red-500 dark:text-gray-400 dark:hover:text-red-400 border border-gray-200 dark:border-gray-700 rounded-md"
+            title="Limpar conversa"
+          >
+            <Trash2 className="h-4 w-4" />
+          </button>
+        )}
       </div>
     </div>
   )
