@@ -447,11 +447,14 @@ export default function AgentesPage() {
       <FormField label="Prompt do Sistema" required hint="Instrucoes que definem o comportamento do agente. Minimo 10 caracteres.">
         <textarea
           value={form.prompt_ativo}
-          onChange={(e) => setForm({ ...form, prompt_ativo: e.target.value })}
+          onChange={(e) => setForm({ ...form, prompt_ativo: e.target.value.slice(0, 10000) })}
           className={textareaClass}
           rows={6}
           placeholder="Voce e um assistente de atendimento ao cliente..."
         />
+        <span className={`text-xs mt-1 block text-right ${form.prompt_ativo.length > 9500 ? 'text-red-500' : 'text-gray-400'}`}>
+          {form.prompt_ativo.length}/10000
+        </span>
       </FormField>
       <div className="grid grid-cols-2 gap-4">
         <FormField label={`Temperatura: ${form.temperatura}`} hint="0 = preciso, 2 = criativo">
